@@ -1,4 +1,3 @@
-// Tipos generados o inferidos de la estructura de base de datos descrita por el usuario
 export type Json =
   | string
   | number
@@ -17,14 +16,35 @@ export interface Database {
           descripcion: string | null
           fecha_inicio: string | null
           fecha_fin: string | null
+          hora_inicio: string | null
+          hora_fin: string | null
           modalidad: string | null
           lugar: string | null
           cupo_maximo: number | null
           porcentaje_minimo_asistencia: number | null
-          slug: string
           activo: boolean
+          estado: string | null
+          requiere_asistencia: boolean | null
+          min_sesiones_certificado: number | null
           tipo_evento_id: string | null
           plantilla_certificado_id: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: any
+        Update: any
+      }
+      inscripciones: {
+        Row: {
+          id: string
+          evento_id: string
+          persona_id: string
+          estado: string
+          fecha_inscripcion: string | null
+          fuente: string | null
+          observaciones: string | null
+          created_at: string
+          updated_at: string | null
         }
         Insert: any
         Update: any
@@ -33,7 +53,10 @@ export interface Database {
         Row: {
           id: string
           evento_id: string
+          nombre: string
+          slug: string
           descripcion: string | null
+          created_at: string
         }
         Insert: any
         Update: any
@@ -42,11 +65,19 @@ export interface Database {
         Row: {
           id: string
           formulario_id: string
-          tipo: string
-          etiqueta: string
-          requerido: boolean
-          opciones: Json | null
+          nombre_campo: string
+          label: string
+          tipo_campo: string
+          obligatorio: boolean
+          placeholder: string | null
+          ayuda: string | null
           orden: number
+          activo: boolean
+          es_base: boolean
+          validacion_json: Json | null
+          opciones_json: Json | null
+          ancho_visual: number | null
+          created_at: string
         }
         Insert: any
         Update: any
@@ -58,38 +89,7 @@ export interface Database {
           numero_documento: string
           correo: string
           correo_verificado: boolean
-          // otros campos posibles
-        }
-        Insert: any
-        Update: any
-      }
-      inscripciones: {
-        Row: {
-          id: string
-          evento_id: string
-          persona_id: string
-          estado: 'pendiente_verificacion' | 'inscrito' | 'confirmado' | 'asistio' | 'aprobado' | 'certificado_generado' | 'enviado'
-          fecha_registro: string
-        }
-        Insert: any
-        Update: any
-      }
-      respuestas_formulario: {
-        Row: {
-          id: string
-          inscripcion_id: string
-          respuestas: Json
-        }
-        Insert: any
-        Update: any
-      }
-      verificaciones_correo: {
-        Row: {
-          id: string
-          inscripcion_id: string
-          token: string
-          estado: 'pendiente' | 'verificado' | 'cancelado'
-          expires_at: string
+          created_at: string
         }
         Insert: any
         Update: any
@@ -100,6 +100,7 @@ export interface Database {
           evento_id: string
           nombre: string
           fecha: string
+          created_at: string
         }
         Insert: any
         Update: any
@@ -107,10 +108,19 @@ export interface Database {
       qr_tokens_asistencia: {
         Row: {
           id: string
-          sesion_id: string
+          evento_id: string | null
+          sesion_evento_id: string
           token: string
-          expira_en: string
+          estado: string | null
           activo: boolean
+          fecha_inicio_vigencia: string | null
+          fecha_fin_vigencia: string | null
+          creado_por: string | null
+          fecha_activacion: string | null
+          fecha_desactivacion: string | null
+          desactivado_por: string | null
+          observacion: string | null
+          created_at: string
         }
         Insert: any
         Update: any
@@ -119,10 +129,16 @@ export interface Database {
         Row: {
           id: string
           evento_id: string
-          sesion_id: string
+          sesion_evento_id: string
           persona_id: string
-          fecha_hora: string
+          inscripcion_id: string | null
           qr_token_id: string
+          numero_documento_digitado: string | null
+          metodo_registro: string | null
+          fecha_hora_registro: string
+          valido: boolean | null
+          observacion: string | null
+          created_at: string
         }
         Insert: any
         Update: any
@@ -132,10 +148,11 @@ export interface Database {
           id: string
           nombre: string
           descripcion: string | null
-          archivo_url: string
-          width: number
-          height: number
+          archivo_base_url: string
+          ancho_px: number
+          alto_px: number
           activo: boolean
+          created_at: string
         }
         Insert: any
         Update: any
@@ -144,7 +161,7 @@ export interface Database {
         Row: {
           id: string
           plantilla_certificado_id: string
-          tipo_campo: string // nombre_completo, numero_documento, evento, fecha, codigo_certificado
+          tipo_campo: string
           pos_x: number
           pos_y: number
           width: number
@@ -164,14 +181,11 @@ export interface Database {
         Update: any
       }
     }
-    Views: {
-      [_ in never]: never
-    }
     Functions: {
       registrar_inscripcion_evento: {
         Args: {
           p_evento_id: string
-          p_datos_persona: Json // {"tipo_documento", "numero_documento", "correo", ...}
+          p_datos_persona: Json
           p_respuestas: Json
         }
         Returns: {
@@ -190,23 +204,6 @@ export interface Database {
           estado_token: string
         }
       }
-      actualizar_correo_y_reenviar_verificacion: {
-        Args: {
-          p_numero_documento: string
-          p_tipo_documento: string
-          p_nuevo_correo: string
-        }
-        Returns: {
-          exito: boolean
-          nuevo_token: string
-        }
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
     }
   }
 }
