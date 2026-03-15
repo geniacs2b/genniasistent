@@ -27,6 +27,7 @@ function PendingContent() {
   const [resending, setResending] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isCanceled, setIsCanceled] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -86,7 +87,7 @@ function PendingContent() {
       const res = await cancelRegistrationAction(personaId, eventId);
       if (res.success) {
         toast({ title: "Inscripción cancelada", description: "Tus datos han sido eliminados correctamente." });
-        router.push("/");
+        setIsCanceled(true);
       } else {
         toast({ title: "Error", description: res.error, variant: "destructive" });
       }
@@ -107,6 +108,42 @@ function PendingContent() {
     });
     router.push(`/inscripcion/${slug}?${params.toString()}`);
   };
+
+  if (isCanceled) {
+    return (
+      <div className="container mx-auto py-24 px-4 flex justify-center">
+        <Card className="max-w-xl w-full shadow-2xl border-0 bg-white/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden relative animate-in zoom-in-95 duration-700">
+          <div className="absolute top-0 left-0 right-0 h-2 bg-rose-500"></div>
+          <CardHeader className="text-center pt-16 pb-8">
+            <div className="h-24 w-24 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-8">
+              <XCircle className="w-12 h-12 text-rose-600" />
+            </div>
+            <CardTitle className="text-4xl font-black text-slate-800 tracking-tight">Registro Cancelado</CardTitle>
+            <CardDescription className="text-xl mt-6 px-4">
+              Tu inscripción para <br/>
+              <strong className="text-rose-600 uppercase mt-2 block">{event}</strong>
+              ha sido cancelada y tus datos han sido eliminados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-16 flex flex-col items-center gap-4 px-12">
+            <Button 
+              onClick={() => router.push(`/inscripcion/${slug}`)} 
+              className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg shadow-lg uppercase tracking-wider"
+            >
+              Registrar otra persona
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/")} 
+              className="w-full h-14 border-2 font-black text-lg text-slate-700 hover:bg-slate-50 uppercase tracking-wider"
+            >
+              Volver al inicio
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isFinished) {
     return (
