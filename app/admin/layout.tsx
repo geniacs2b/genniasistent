@@ -37,8 +37,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800 hidden md:flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10 relative">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800/60">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-12 w-12 flex items-center justify-center">
-              <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-full w-full object-contain" />
+            <div className="h-14 w-14 flex items-center justify-center">
+              <img src="/assets/logo-plataforma.png" alt="Plataforma" className="h-full w-full object-contain" />
             </div>
           </Link>
           <div className="mt-4">
@@ -92,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile Header (Only visible when sidebar is hidden) */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-4 md:hidden z-10 sticky top-0 shadow-sm">
           <div className="flex items-center gap-3">
-            <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-8 w-8 object-contain" />
+            <img src="/assets/logo-plataforma.png" alt="Plataforma" className="h-8 w-8 object-contain" />
             <span className="font-extrabold text-sm tracking-tighter text-slate-800 dark:text-white uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
             </span>
