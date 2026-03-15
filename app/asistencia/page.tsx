@@ -169,16 +169,25 @@ export default function AsistenciaPage() {
               <span className="text-3xl">🎫</span>
             </div>
             <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">Confirmación Asistencia</CardTitle>
-            {qrInfo?.sesion?.nombre && (
-              <div className="mt-4 space-y-1.5">
-                <p className="text-lg font-bold text-primary">
-                  {qrInfo.sesion.nombre}
-                </p>
-                {qrInfo.sesion?.fecha && (
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 inline-block px-3 py-1 rounded-full">
-                    {formatToBogota(qrInfo.sesion.fecha, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {qrInfo?.sesion && (
+              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-left px-1">Evento</p>
+                  <p className="text-base font-bold text-slate-800 dark:text-slate-100 text-left px-1">
+                    {qrInfo.sesion?.eventos?.titulo || "Evento del Sistema"}
                   </p>
-                )}
+                </div>
+                <div className="space-y-1 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-left px-1">Sesión</p>
+                  <p className="text-base font-semibold text-primary text-left px-1">
+                    {qrInfo.sesion.nombre}
+                  </p>
+                  {qrInfo.sesion?.fecha && (
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 text-left px-1">
+                      {formatToBogota(qrInfo.sesion.fecha, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </CardHeader>
