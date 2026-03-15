@@ -33,7 +33,7 @@ export default async function Home() {
           
           <div className="container max-w-4xl mx-auto space-y-10">
             <div className="flex justify-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-24 w-24 object-contain drop-shadow-2xl" />
+              <img src="/assets/Logo asistencia.png" alt="Logo" className="h-24 w-24 object-contain drop-shadow-2xl" />
             </div>
             <div className="space-y-6">
               <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-1 text-sm font-bold text-primary animate-pulse">
