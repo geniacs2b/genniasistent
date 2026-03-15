@@ -169,29 +169,38 @@ export default function AsistenciaPage() {
               <span className="text-3xl">🎫</span>
             </div>
             <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">Confirmación Asistencia</CardTitle>
-            {qrInfo?.sesion && (
-              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-left px-1">Evento</p>
-                  <p className="text-base font-bold text-slate-800 dark:text-slate-100 text-left px-1">
-                    {qrInfo.sesion?.eventos?.titulo || "Evento del Sistema"}
+          </CardHeader>
+          <CardContent className="px-8 py-8">
+            {/* Bloque Informativo de Contexto */}
+            {qrInfo && (
+              <div className="mb-8 p-5 bg-primary/5 dark:bg-primary/10 rounded-2xl border border-primary/20 dark:border-primary/20 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-black text-secondary dark:text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-secondary dark:bg-primary animate-pulse"></span>
+                    Evento
+                  </p>
+                  <p className="text-xl font-extrabold text-structural dark:text-slate-100 leading-tight">
+                    {qrInfo.evento_titulo || "Evento del Sistema"}
                   </p>
                 </div>
-                <div className="space-y-1 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-left px-1">Sesión</p>
-                  <p className="text-base font-semibold text-primary text-left px-1">
-                    {qrInfo.sesion.nombre}
-                  </p>
-                  {qrInfo.sesion?.fecha && (
-                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 text-left px-1">
-                      {formatToBogota(qrInfo.sesion.fecha, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                
+                <div className="pt-4 border-t border-primary/10 dark:border-primary/10 flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sesión</p>
+                    <p className="text-base font-bold text-secondary dark:text-primary">
+                      {qrInfo.sesion_nombre || "Sesión General"}
                     </p>
-                  )}
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-right">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Fecha</p>
+                    <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      Regitrado en: {qrInfo.sesion_id ? "Día del Evento" : "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
-          </CardHeader>
-          <CardContent className="px-8 py-8">
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="doc" className="text-base font-semibold text-slate-700 dark:text-slate-300 ml-1">Documento de Identidad</Label>
