@@ -296,10 +296,19 @@ export function DynamicForm({
         description: "Redirigiendo a verificación...",
       });
       
+      const finalPersonaId = res.data?.persona_id || initialData?.persona?.id || '';
+      const finalEventId = eventoId;
+
+      // Persistencia de seguridad para la pantalla de espera
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('lastPersonaId', finalPersonaId);
+        sessionStorage.setItem('lastEventId', finalEventId);
+      }
+
       const params = new URLSearchParams({
-        personaId: res.data?.persona_id || initialData?.persona?.id || '',
+        personaId: finalPersonaId,
         inscripcionId: res.data?.inscripcion_id || initialData?.inscripcion_id || '',
-        eventId: eventoId,
+        eventId: finalEventId,
         email: values.correo,
         doc: values.numero_documento,
         type: values.tipo_documento,

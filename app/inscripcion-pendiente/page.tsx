@@ -13,11 +13,10 @@ function PendingContent() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // IDs principales para el flujo
-  const personaId = searchParams.get("personaId") || "";
-  const eventId = searchParams.get("eventId") || "";
+  // Estados para identificadores con persistencia
+  const [ids, setIds] = useState<{ personaId: string; eventId: string } | null>(null);
   
-  // Datos informativos y para retrocompatibilidad
+  // Datos informativos (pueden venir de URL o persistencia)
   const email = searchParams.get("email") || "";
   const doc = searchParams.get("doc") || "";
   const type = searchParams.get("type") || "";
@@ -31,22 +30,26 @@ function PendingContent() {
   const [isFinished, setIsFinished] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // 1. Efecto inicial para montar e inicializar IDs
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    if (!personaId || !eventId) {
-      console.warn("[PendingPage] Missing IDs, redirecting to home.");
-      router.push("/");
-      return;
+    if (typeof window !== 'undefined') {
+      const pId = searchParams.get("personaId") || sessionStorage.getItem('lastPersonaId') || "";
+      const eId = searchParams.get("eventId") || sessionStorage.getItem('lastEventId') || "";
+      setIds({ personaId: pId, eventId: eId });
     }
+  }, [searchParams]);
+
+  // 2. Efecto de Polling para verificar estado
+  useEffect(() => {
+    if (!mounted || !ids?.personaId || !ids?.eventId) return;
+
+    const { personaId, eventId } = ids;
 
     // Polling cada 3 segundos para detectar verificación automática
     const interval = setInterval(async () => {
       try {
+        console.log(`[PendingPage] Verificando estado para persona: ${personaId}`);
         const res = await checkVerificationStatusAction(personaId, eventId);
         if (res.success && res.verified) {
           setIsVerified(true);
@@ -62,9 +65,20 @@ function PendingContent() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [personaId, eventId, doc, type, router, toast]);
+  }, [mounted, ids, toast]);
+
+  // 3. Redirección de seguridad si faltan IDs vitales despues de intentar cargarlos
+  useEffect(() => {
+    if (mounted && ids && (!ids.personaId || !ids.eventId)) {
+       console.warn("[PendingPage] No se encontraron identificadores válidos. Redirigiendo...");
+       router.push("/");
+    }
+  }, [mounted, ids, router]);
 
   const onResend = async () => {
+    if (!ids?.personaId || !ids?.eventId) return;
+    const { personaId, eventId } = ids;
+
     setResending(true);
     try {
       const res = await resendVerificationAction(personaId, eventId);
@@ -81,6 +95,9 @@ function PendingContent() {
   };
 
   const onCancel = async () => {
+    if (!ids?.personaId || !ids?.eventId) return;
+    const { personaId, eventId } = ids;
+
     if (!confirm("¿Estás seguro de que deseas cancelar tu inscripción? Se borrarán todos tus datos.")) return;
     setCanceling(true);
     try {
@@ -99,6 +116,9 @@ function PendingContent() {
   };
 
   const onEdit = () => {
+    if (!ids?.personaId) return;
+    const { personaId } = ids;
+
     // Redirigir al formulario original con los parámetros para pre-llenado
     const params = new URLSearchParams({
       edit: "true",
