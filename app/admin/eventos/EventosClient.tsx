@@ -57,7 +57,8 @@ export function EventosClient({ initialEvents }: EventosClientProps) {
             <TableHead className="font-bold text-slate-600 dark:text-slate-300 h-14">Evento</TableHead>
             <TableHead className="font-bold text-slate-600 dark:text-slate-300">Fecha de Inicio</TableHead>
             <TableHead className="font-bold text-slate-600 dark:text-slate-300">Modalidad</TableHead>
-            <TableHead className="font-bold text-slate-600 dark:text-slate-300">Cupo</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300">Inscritos</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">Cupo</TableHead>
             <TableHead className="font-bold text-slate-600 dark:text-slate-300">Estado</TableHead>
             <TableHead className="text-right font-bold text-slate-600 dark:text-slate-300 pr-6">Acciones</TableHead>
           </TableRow>
@@ -93,8 +94,15 @@ export function EventosClient({ initialEvents }: EventosClientProps) {
                 </span>
               </TableCell>
               <TableCell>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-primary/20 border-0 pointer-events-none px-2 py-0.5 rounded-md font-bold text-xs uppercase tracking-tight">
+                    {ev.inscripciones?.[0]?.count || 0} inscritos
+                  </Badge>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
                 <span className="text-slate-600 dark:text-slate-300 font-medium">
-                  {ev.cupo_maximo ? `${ev.cupo_maximo} pax` : "Ilimitado"}
+                  {ev.cupo_maximo ? `${ev.cupo_maximo}` : "∞"}
                 </span>
               </TableCell>
               <TableCell>
@@ -137,7 +145,7 @@ export function EventosClient({ initialEvents }: EventosClientProps) {
           ))}
           {eventos.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-20">
+              <TableCell colSpan={7} className="text-center py-20">
                 <div className="flex flex-col items-center justify-center space-y-3">
                   <div className="h-16 w-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center">
                     <span className="text-3xl">📅</span>

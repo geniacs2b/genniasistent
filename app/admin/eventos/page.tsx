@@ -10,7 +10,10 @@ export default async function EventosPage() {
   const supabase = createClient();
   const { data: eventosRaw, error } = await supabase
     .from("eventos")
-    .select("id, titulo, fecha_inicio, fecha_fin, hora_inicio, hora_fin, modalidad, lugar, activo, cupo_maximo, plantilla_certificado_id")
+    .select(`
+      id, titulo, fecha_inicio, fecha_fin, hora_inicio, hora_fin, modalidad, lugar, activo, cupo_maximo, plantilla_certificado_id,
+      inscripciones:inscripciones(count)
+    `)
     .order("fecha_inicio", { ascending: false });
 
   return (

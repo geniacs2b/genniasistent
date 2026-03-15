@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Settings2, AlertCircle, ExternalLink } from "lucide-react";
+import { CopyUrlButton } from "@/components/CopyUrlButton";
 import { CreateFormButton } from "./CreateFormButton";
 
 export const dynamic = 'force-dynamic';
@@ -62,9 +63,7 @@ export default async function FormulariosPage() {
                       <div className="text-base">{ev.titulo}</div>
                       {formulario && (
                         <div className="flex items-center gap-2 mt-1">
-                           <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-700">
-                            /inscripcion/{formulario.slug}
-                          </code>
+                          <CopyUrlButton slug={formulario.slug} />
                         </div>
                       )}
                     </div>
