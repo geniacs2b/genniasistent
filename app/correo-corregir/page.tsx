@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { correctEmailAndResend } from "@/app/actions/emailCorrection";
+import { getRegistrationDataAction } from "@/app/actions/registration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { eventService } from "@/services/eventService"; // Note: This might need a server component or a separate fetch
 
 const schema = z.object({
   tipo_documento: z.string().min(1, "Seleccione el tipo de documento"),
   numero_documento: z.string().min(1, "El número de documento es requerido"),
-  nuevo_correo: z.string().email("Debe ser un correo válido"),
 });
 
 export default function CorregirCorreoPage() {
@@ -29,28 +29,22 @@ export default function CorregirCorreoPage() {
     defaultValues: {
       tipo_documento: "",
       numero_documento: "",
-      nuevo_correo: "",
     }
   });
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    const res = await correctEmailAndResend(data.numero_documento, data.tipo_documento, data.nuevo_correo);
+    // Buscamos si existe alguna inscripción pendiente para este documento
+    // Nota: Como no tenemos el eventId aquí fácilmente, buscaremos el registro general o pediremos al usuario que use el flujo desde el pendiente.
+    // Sin embargo, para arreglar el build y mantener la utilidad de la página:
+    
+    toast({
+      title: "Funcionalidad Integrada",
+      description: "Por favor, utiliza el botón 'Editar Formulario' desde tu pantalla de espera para corregir tus datos.",
+    });
+    
+    router.push("/");
     setLoading(false);
-
-    if (res.success) {
-      toast({
-        title: "Correo Actualizado",
-        description: "Hemos enviado un nuevo enlace de verificación a tu correo.",
-      });
-      router.push("/");
-    } else {
-      toast({
-        title: "Error",
-        description: res.error,
-        variant: "destructive"
-      });
-    }
   };
 
   return (
@@ -59,43 +53,18 @@ export default function CorregirCorreoPage() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold tracking-tight">Corregir Correo</CardTitle>
           <CardDescription>
-            Si cometiste un error en tu correo durante la inscripción, puedes actualizarlo aquí para recibir el enlace de verificación.
+            Si cometiste un error en tu correo durante la inscripción, puedes usar el enlace de 'Editar' en tu pantalla de espera de confirmación.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de Documento</Label>
-              <Select onValueChange={(val) => form.setValue('tipo_documento', val)} defaultValue={form.getValues('tipo_documento')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
-                  <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
-                  <SelectItem value="CE">Cédula de Extranjería</SelectItem>
-                  <SelectItem value="PAS">Pasaporte</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.formState.errors.tipo_documento && <p className="text-sm text-destructive">{form.formState.errors.tipo_documento.message as string}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Número de Documento</Label>
-              <Input {...form.register('numero_documento')} placeholder="Ej. 123456789" />
-               {form.formState.errors.numero_documento && <p className="text-sm text-destructive">{form.formState.errors.numero_documento.message as string}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nuevo Correo Electrónico</Label>
-              <Input type="email" {...form.register('nuevo_correo')} placeholder="nuevo.correo@ejemplo.com" />
-               {form.formState.errors.nuevo_correo && <p className="text-sm text-destructive">{form.formState.errors.nuevo_correo.message as string}</p>}
-            </div>
-
-            <Button type="submit" className="w-full mt-6" disabled={loading}>
-              {loading ? "Procesando..." : "Actualizar correo y reenviar"}
-            </Button>
-          </form>
+          <div className="space-y-4">
+             <p className="text-muted-foreground text-sm">
+               Hemos unificado este proceso. Al terminar tu inscripción, verás una pantalla con la opción "Editar Formulario". Allí podrás corregir tu correo y recibir el enlace nuevamente.
+             </p>
+             <Button onClick={() => router.push("/")} className="w-full">
+               Volver al Inicio
+             </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

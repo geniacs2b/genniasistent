@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { submitRegistration } from "@/app/actions/registration";
+import { submitRegistration, updateRegistrationAction, cancelRegistrationAction } from "@/app/actions/registration";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatToBogota } from "@/lib/date";
 import { checkExistingRegistration } from "@/app/actions/validation";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, XCircle } from "lucide-react";
 
 interface DynamicFormProps {
   eventoId: string;
@@ -29,6 +29,8 @@ interface DynamicFormProps {
   fields: any[];
   fechaApertura?: string | null;
   fechaCierre?: string | null;
+  formSlug: string;
+  initialData?: any;
 }
 
 export function DynamicForm({ 
@@ -41,13 +43,18 @@ export function DynamicForm({
   eventoLugar,
   fields, 
   fechaApertura, 
-  fechaCierre 
+  fechaCierre,
+  formSlug,
+  initialData
 }: DynamicFormProps) {
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isFinished, setIsFinished] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [validatingDoc, setValidatingDoc] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [regData, setRegData] = useState<{ doc: string; type: string; email: string } | null>(null);
+  const [showEmailFix, setShowEmailFix] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [resending, setResending] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -90,12 +97,67 @@ export function DynamicForm({
     resolver: zodResolver(schema),
     defaultValues: {
       ...fields.reduce((acc, field) => {
-        acc[field.id] = field.tipo_campo === 'checkbox' ? false : '';
+        // Si hay datos iniciales en respuestas_formulario, usarlos
+        if (initialData?.respuestas?.[field.id] !== undefined) {
+          acc[field.id] = initialData.respuestas[field.id];
+          return acc;
+        }
+
+        // Si no, intentar mapear desde el objeto persona
+        const name = field.nombre_campo.toLowerCase();
+        const persona = initialData?.persona || {};
+
+        if (['tipo_documento', 'tipo_de_documento'].some(v => name.includes(v))) {
+          acc[field.id] = persona.tipo_documento || '';
+        } else if (['numero_documento', 'documento'].some(v => name.includes(v)) && !name.includes('tipo')) {
+          acc[field.id] = persona.numero_documento || '';
+        } else if (['nombres', 'nombre'].some(v => name === v || name.startsWith('nombre'))) {
+          acc[field.id] = persona.nombres || '';
+        } else if (['apellidos', 'apellido'].some(v => name === v || name.startsWith('apellido'))) {
+          acc[field.id] = persona.apellidos || '';
+        } else if (['correo', 'email'].some(v => name.includes(v))) {
+          acc[field.id] = persona.correo || '';
+        } else if (['telefono', 'teléfono', 'celular'].some(v => name.includes(v))) {
+          acc[field.id] = persona.telefono || '';
+        } else if (name.includes('empresa')) {
+          acc[field.id] = persona.empresa || '';
+        } else if (name.includes('cargo')) {
+          acc[field.id] = persona.cargo || '';
+        } else if (name.includes('municipio')) {
+          acc[field.id] = persona.municipio || '';
+        } else if (name.includes('departamento')) {
+          acc[field.id] = persona.departamento || '';
+        } else {
+          acc[field.id] = field.tipo_campo === 'checkbox' ? false : '';
+        }
         return acc;
       }, {} as any),
-      acepta_tratamiento: false
+      acepta_tratamiento: initialData?.persona?.tratamiento_datos_aceptado || false
     }
   });
+
+  const onCancel = async () => {
+    if (!initialData?.persona?.id) return;
+    if (!confirm("¿Estás seguro de que deseas cancelar tu inscripción? Se borrarán todos tus datos.")) return;
+    
+    setCanceling(true);
+    try {
+      const res = await cancelRegistrationAction(
+        initialData.persona.id, 
+        eventoId
+      );
+      if (res.success) {
+        toast({ title: "Registro cancelado", description: "Tus datos han sido eliminados correctamente." });
+        router.push("/");
+      } else {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   if (mounted && isExpired) {
     return (
@@ -123,8 +185,6 @@ export function DynamicForm({
 
   const handleReset = () => {
     form.reset();
-    setIsSuccess(false);
-    setIsFinished(false);
     setDuplicateError(null);
   };
 
@@ -213,16 +273,41 @@ export function DynamicForm({
       p_respuesta_json: data
     };
 
-    const res = await submitRegistration(formularioId, eventoId, payload, eventoTitulo);
+    let res;
+    if (initialData?.persona?.id) {
+      // Modo Edición
+      res = await updateRegistrationAction(
+        initialData.persona.id,
+        eventoId,
+        formularioId,
+        payload,
+        eventoTitulo
+      );
+    } else {
+      // Registro Inicial
+      res = await submitRegistration(formularioId, eventoId, payload, eventoTitulo);
+    }
     
     setLoading(false);
 
     if (res.success) {
       toast({
-        title: "Inscripción en proceso",
-        description: "Revisa tu correo para verificar tu inscripción.",
+        title: initialData ? "¡Edición exitosa!" : "¡Registro exitoso!",
+        description: "Redirigiendo a verificación...",
       });
-      setIsSuccess(true);
+      
+      const params = new URLSearchParams({
+        personaId: res.data?.persona_id || initialData?.persona?.id || '',
+        inscripcionId: res.data?.inscripcion_id || initialData?.inscripcion_id || '',
+        eventId: eventoId,
+        email: values.correo,
+        doc: values.numero_documento,
+        type: values.tipo_documento,
+        event: eventoTitulo,
+        slug: formSlug
+      });
+      
+      router.push(`/inscripcion-pendiente?${params.toString()}`);
     } else {
       toast({
         title: "Error en la inscripción",
@@ -232,65 +317,6 @@ export function DynamicForm({
     }
   };
 
-  if (isFinished) {
-    return (
-      <Card className="max-w-xl mx-auto shadow-2xl shadow-indigo-500/10 border border-slate-200/60 bg-white/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden text-center p-8 sm:p-12 mt-12">
-        <div className="flex justify-center mb-6">
-          <div className="h-20 w-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center shadow-inner">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
-          </div>
-        </div>
-        <CardTitle className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight mb-4">¡Todo listo!</CardTitle>
-        <CardDescription className="text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
-          Gracias por usar nuestra plataforma corporativa. Puedes cerrar esta pestaña de forma segura.
-        </CardDescription>
-        <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
-          Plataforma de Eventos y Certificados
-        </p>
-      </Card>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <Card className="max-w-xl mx-auto shadow-2xl shadow-indigo-500/10 border border-slate-200/60 bg-white/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden text-center mt-12 relative">
-         <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500"></div>
-        <CardContent className="px-6 py-12 sm:px-12 sm:py-16 flex flex-col items-center space-y-8">
-          <div className="h-24 w-24 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-2 ring-8 ring-emerald-50/50 dark:ring-emerald-900/10">
-             <CheckCircle2 className="w-12 h-12 text-emerald-500 dark:text-emerald-400" strokeWidth={2.5} />
-          </div>
-          <div className="space-y-3">
-            <CardTitle className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
-              Inscripción realizada correctamente
-            </CardTitle>
-            <p className="text-[1.1rem] font-medium text-primary mt-2">
-              {eventoTitulo}
-            </p>
-            <CardDescription className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed pt-3">
-              Gracias por tu participación. Te hemos enviado un correo electrónico con los detalles y el enlace de confirmación.
-            </CardDescription>
-          </div>
-          
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 rounded-xl text-sm w-full border border-slate-100 dark:border-slate-800 flex items-start gap-3 text-left shadow-sm">
-            <span className="text-lg">💡</span>
-            <div>
-              <p className="font-semibold mb-0.5 text-slate-700 dark:text-slate-200">Revisa tu bandeja de entrada</p>
-              <p>Si no encuentras el correo, por favor verifica tu carpeta de Spam o Correo no deseado.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center pt-8 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" size="lg" onClick={handleReset} className="w-full sm:w-auto h-12 font-semibold border-slate-200 hover:bg-slate-50 text-slate-600">
-              Realizar otra inscripción
-            </Button>
-            <Button size="lg" onClick={() => setIsFinished(true)} className="w-full sm:w-auto h-12 font-bold px-8 shadow-md hover:shadow-lg transition-all">
-              Finalizar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="w-full">
@@ -456,10 +482,23 @@ export function DynamicForm({
             type="submit" 
             size="lg" 
             className="w-full mt-10 h-14 text-lg font-bold shadow-md hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 px-8" 
-            disabled={loading || validatingDoc || !!duplicateError}
+            disabled={loading || canceling || validatingDoc || !!duplicateError}
           >
-            {loading ? "Procesando inscripción..." : validatingDoc ? "Comprobando..." : "Completar Inscripción ✨"}
+            {loading ? "Procesando..." : initialData ? "Actualizar Inscripción ✨" : "Completar Inscripción ✨"}
           </Button>
+
+          {initialData && (
+            <Button 
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={loading || canceling}
+              className="w-full mt-4 text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold"
+            >
+              {canceling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+              Cancelar Mi Inscripción (Eliminar datos)
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>

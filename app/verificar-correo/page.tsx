@@ -4,8 +4,9 @@ import { CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export default async function VerificarCorreoPage({ searchParams }: { searchParams: { token: string } }) {
-  const token = searchParams.token;
+export default async function VerificarCorreoPage({ searchParams }: { searchParams: { token?: string | string[] } }) {
+  const tokenRaw = searchParams.token;
+  const token = Array.isArray(tokenRaw) ? tokenRaw[0] : tokenRaw;
 
   if (!token) {
     return (
@@ -34,7 +35,7 @@ export default async function VerificarCorreoPage({ searchParams }: { searchPara
     } else if (result) {
       const msg = result.mensaje?.toLowerCase() || '';
       console.log("Parsed error message:", msg);
-      if (msg.includes('ya verificado') || msg.includes('ya fue verificado')) {
+      if (msg.includes('ya verificado') || msg.includes('ya fue verificado') || msg.includes('ya fue utilizado')) {
         statusKey = 'already_used';
       } else if (msg.includes('expirado')) {
         statusKey = 'expired';

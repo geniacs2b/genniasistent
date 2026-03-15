@@ -8,7 +8,7 @@ export const emailVerificationService = {
     const supabase = createClient();
     
     const { data, error } = await supabase.rpc('verificar_correo_inscripcion', {
-      p_token: token
+      p_token: token.trim()
     });
 
     if (error) {
@@ -16,27 +16,49 @@ export const emailVerificationService = {
       throw new Error(error.message);
     }
     
-    // El RPC al parecer devuelve un array con un objeto: [{ ok: boolean, mensaje: string, ... }]
-    return Array.isArray(data) ? data[0] : data; 
+    return data; 
   },
 
   /**
-   * Actualiza el correo y reenvía el token de verificación
+   * Reenvía el token de verificación usando el persona_id
    */
-  async correctEmail(numeroDocumento: string, tipoDocumento: string, nuevoCorreo: string) {
+  async resendVerificationPorPersona(personaId: string, eventoId: string) {
     const supabase = createClient();
     
-    const { data, error } = await supabase.rpc('actualizar_correo_y_reenviar_verificacion', {
-      p_numero_documento: numeroDocumento,
-      p_tipo_documento: tipoDocumento,
-      p_nuevo_correo: nuevoCorreo.trim().toLowerCase()
+    const { data, error } = await supabase.rpc('reenviar_verificacion_por_persona', {
+      p_persona_id: personaId,
+      p_evento_id: eventoId,
+      p_minutos_expiracion: 60
     });
 
     if (error) {
-      console.error("Error Email Correction RPC:", error);
+      console.error("Error Resend Verification RPC:", error);
       throw new Error(error.message);
     }
 
-    return data; // { exito, nuevo_token }
+    return data;
+  },
+
+  /**
+   * Obtiene el estado actual de la inscripción para polling usando personaId
+   */
+  async getVerificationStatus(personaId: string, eventoId: string) {
+    const supabase = createClient();
+    
+    const { data, error } = await supabase
+      .from('inscripciones')
+      .select('estado')
+      .eq('persona_id', personaId)
+      .eq('evento_id', eventoId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[EmailVerificationService] Error fetching status:", error);
+      return null;
+    }
+
+    return data ? { estado: data.estado } : null;
   }
 };
