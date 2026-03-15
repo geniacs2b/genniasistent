@@ -4,7 +4,7 @@ ALTER TABLE public.asistencias
 DROP CONSTRAINT IF EXISTS unique_persona_sesion;
 
 ALTER TABLE public.asistencias
-ADD CONSTRAINT unique_persona_sesion UNIQUE (persona_id, sesion_id);
+ADD CONSTRAINT unique_persona_sesion UNIQUE (persona_id, sesion_evento_id);
 
 -- 2. Ajustar la función de registro de asistencia
 -- Se valida si ya existe la asistencia para devolver un mensaje amigable.
@@ -20,11 +20,12 @@ DECLARE
     v_token_id uuid;
     v_sesion_id uuid;
     v_evento_id uuid;
+    v_evento_id uuid;
     v_persona_id uuid;
     v_asistencia_id uuid;
 BEGIN
-    -- 1. Validar Token
-    SELECT id, sesion_id INTO v_token_id, v_sesion_id
+    -- 1. Validar Token (usando sesion_evento_id si es el nombre correcto en la tabla)
+    SELECT id, sesion_evento_id INTO v_token_id, v_sesion_id
     FROM public.qr_tokens_asistencia 
     WHERE token = p_token AND activo = true;
 
@@ -47,7 +48,7 @@ BEGIN
     -- esta validación permite devolver un mensaje controlado a la UI.
     IF EXISTS (
         SELECT 1 FROM public.asistencias 
-        WHERE sesion_id = v_sesion_id AND persona_id = v_persona_id
+        WHERE sesion_evento_id = v_sesion_id AND persona_id = v_persona_id
     ) THEN
         RETURN jsonb_build_object(
             'success', false, 
@@ -57,7 +58,7 @@ BEGIN
     END IF;
 
     -- 5. Insertar Asistencia
-    INSERT INTO public.asistencias (evento_id, sesion_id, persona_id, qr_token_id, fecha_hora)
+    INSERT INTO public.asistencias (evento_id, sesion_evento_id, persona_id, qr_token_id, fecha_hora_registro)
     VALUES (v_evento_id, v_sesion_id, v_persona_id, v_token_id, now())
     RETURNING id INTO v_asistencia_id;
 

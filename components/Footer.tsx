@@ -6,7 +6,7 @@ export function Footer() {
           <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">Desarrollado por</span>
           <div className="h-4 w-px bg-slate-200"></div>
           <div className="flex items-center gap-2">
-            <img src="/assets/logo-gennia.png" className="h-6 w-auto object-contain" />
+            <img src="/assets/logo-gennia-dark.png" alt="Logo GenniAsistent" className="h-6 w-auto object-contain" />
             <span className="text-sm font-black tracking-tight text-slate-800 uppercase ml-1">GENNIA S.A.S</span>
           </div>
         </div>

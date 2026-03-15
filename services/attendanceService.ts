@@ -103,7 +103,7 @@ export const attendanceService = {
     const { count, error } = await supabase
       .from('asistencias')
       .select('id', { count: 'exact', head: true })
-      .eq('sesion_id', sesionId);
+      .eq('sesion_evento_id', sesionId);
     if (error) throw new Error(error.message);
     return count ?? 0;
   },

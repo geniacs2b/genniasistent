@@ -80,12 +80,18 @@ export function QRPageClient({ sesiones, tokens: initialTokens }: QRPageClientPr
   const supabase = createClient();
 
   const refreshTokens = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("qr_tokens_asistencia")
       .select("id, token, estado, activo, fecha_activacion, fecha_desactivacion, created_at, sesiones_evento(nombre, fecha, eventos(titulo))")
       .order("created_at", { ascending: false })
       .limit(30);
-    if (data) setTokens(data);
+    
+    if (error) {
+      console.error("[QRPageClient] Error refreshing tokens:", error);
+      toast({ title: "Error al actualizar lista", description: error.message, variant: "destructive" });
+    } else {
+      if (data) setTokens(data);
+    }
   };
 
   const generateQR = async () => {

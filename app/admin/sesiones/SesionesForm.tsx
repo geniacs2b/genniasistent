@@ -164,8 +164,8 @@ export function SesionesForm({ eventos, onCreated }: SesionesFormProps) {
                 placeholder="Seleccione la fecha"
                 className="w-full text-base h-10 border-0 bg-transparent shadow-none font-medium"
                 disabled={[
-                  ...(selectedEvento?.fecha_inicio ? [{ before: new Date(selectedEvento.fecha_inicio) }] : []),
-                  ...(selectedEvento?.fecha_fin ? [{ after: new Date(selectedEvento.fecha_fin) }] : [])
+                  ...(selectedEvento?.fecha_inicio ? [{ before: getBogotaDate(selectedEvento.fecha_inicio)! }] : []),
+                  ...(selectedEvento?.fecha_fin ? [{ after: getBogotaDate(selectedEvento.fecha_fin)! }] : [])
                 ]}
               />
             </div>
