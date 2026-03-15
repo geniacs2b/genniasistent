@@ -53,15 +53,17 @@ export default async function Home() {
                   Acceso Administrativo
                 </Button>
               </Link>
+              {/* 
               <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 gap-2">
                 <Search className="h-5 w-5" />
                 Explorar Eventos
               </Button>
+              */}
             </div>
           </div>
         </section>
 
-        {/* Eventos Destacados */}
+        {/* 
         <section className="py-20 bg-background">
           <div className="container px-4 mx-auto">
             <div className="flex items-center justify-between mb-12">
@@ -95,6 +97,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        */}
       </main>
     </div>
   );
