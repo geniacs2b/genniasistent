@@ -109,7 +109,10 @@ export default function AsistenciaPage() {
 
       {viewState === 'loading' && (
         <Card className="w-full shadow-2xl shadow-indigo-500/10 border-0 bg-white/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden">
-          <CardContent className="py-12 flex flex-col items-center gap-6">
+          <div className="pt-8 flex justify-center">
+            <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-16 w-16 object-contain" />
+          </div>
+          <CardContent className="py-8 flex flex-col items-center gap-6">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full pb-2"></div>
               <Loader2 className="w-16 h-16 animate-spin text-primary relative" strokeWidth={2} />
@@ -163,7 +166,10 @@ export default function AsistenciaPage() {
       {viewState === 'ready' && (
         <Card className="w-full shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-slate-200/50 bg-white/95 backdrop-blur-xl overflow-hidden rounded-[1.5rem] relative">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-indigo-500 to-sky-400"></div>
-          <CardHeader className="text-center pt-10 pb-6 border-b border-slate-100 dark:border-slate-800/50 px-8">
+          <CardHeader className="text-center pt-8 pb-6 border-b border-slate-100 dark:border-slate-800/50 px-8">
+            <div className="flex justify-center mb-6">
+              <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-16 w-16 object-contain" />
+            </div>
             <div className="mx-auto w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mb-4 ring-8 ring-indigo-50/30 dark:ring-indigo-900/10">
               <span className="text-3xl">🎫</span>
             </div>
@@ -210,7 +216,10 @@ export default function AsistenciaPage() {
       {viewState === 'success' && (
         <Card className="w-full shadow-2xl shadow-emerald-500/10 border-0 bg-white/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden relative">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500"></div>
-          <CardContent className="py-12 px-8 flex flex-col items-center text-center gap-8">
+          <div className="pt-8 flex justify-center">
+            <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-16 w-16 object-contain" />
+          </div>
+          <CardContent className="py-8 px-8 flex flex-col items-center text-center gap-8">
              <div className="h-24 w-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center ring-8 ring-emerald-50/50 dark:ring-emerald-900/10">
               <CheckCircle2 className="w-12 h-12 text-emerald-500" strokeWidth={2.5} />
             </div>
