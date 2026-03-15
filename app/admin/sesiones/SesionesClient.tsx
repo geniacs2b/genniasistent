@@ -145,7 +145,7 @@ export function SesionesClient({ sesiones, eventos }: SesionesClientProps) {
 
           return (
              <Card key={s.id} className="group relative overflow-hidden border border-slate-200/60 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[1.5rem] flex flex-col">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 to-indigo-500 opacity-80"></div>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary opacity-80"></div>
               <CardHeader className="pb-3 px-6 pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -177,7 +177,7 @@ export function SesionesClient({ sesiones, eventos }: SesionesClientProps) {
                        <span className="capitalize">{formatToBogota(s.fecha, { weekday: 'short', day: '2-digit', month: 'short' })}</span>
                        {(s.hora_inicio || s.hora_fin) && (
                         <span className="flex items-center gap-1.5 text-slate-500 font-medium bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md text-xs shadow-sm border border-slate-100 dark:border-slate-800">
-                          <Clock9 className="w-3 h-3 text-indigo-500" />
+                          <Clock9 className="w-3 h-3 text-secondary" />
                           {s.hora_inicio ?? "—"}{s.hora_fin ? ` – ${s.hora_fin}` : ""}
                         </span>
                       )}
@@ -191,7 +191,7 @@ export function SesionesClient({ sesiones, eventos }: SesionesClientProps) {
                   <Button
                      variant="outline"
                     size="sm"
-                    className="h-8 text-xs gap-1.5 px-3 rounded-full border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 font-bold"
+                    className="h-8 text-xs gap-1.5 px-3 rounded-full border-slate-200 dark:border-slate-700 text-secondary dark:text-primary hover:bg-primary/5 font-bold"
                     onClick={() => loadCount(s.id)}
                   >
                     <Users className="w-3.5 h-3.5" />

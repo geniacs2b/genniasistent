@@ -171,10 +171,10 @@ export function PlantillasClient({ initialTemplates, events }: { initialTemplate
     <div className="space-y-10">
       {/* Upload Form */}
       <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-[1.5rem] overflow-hidden max-w-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-indigo-400 to-sky-500"></div>
+        <div className="h-1 w-full bg-gradient-to-r from-primary to-secondary"></div>
         <CardHeader className="pb-4 px-6 pt-6 border-b border-slate-100 dark:border-slate-800">
           <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-            <Upload className="w-5 h-5 text-indigo-500" />
+            <Upload className="w-5 h-5 text-primary" />
             Asociar nueva plantilla a Evento
           </CardTitle>
         </CardHeader>
@@ -216,7 +216,7 @@ export function PlantillasClient({ initialTemplates, events }: { initialTemplate
               <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>
             </div>
           )}
-          <Button onClick={handleUpload} disabled={uploading || !file || !evento_id} className="w-full gap-2 h-12 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all hover:-translate-y-0.5 mt-2">
+          <Button onClick={handleUpload} disabled={uploading || !file || !evento_id} className="w-full gap-2 h-12 rounded-xl font-bold bg-primary hover:bg-secondary text-primary-foreground shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 mt-2">
             <Upload className="w-4 h-4" />
             {uploading ? "Subiendo..." : "Subir y Asociar al Evento"}
           </Button>
@@ -240,7 +240,7 @@ export function PlantillasClient({ initialTemplates, events }: { initialTemplate
               return (
                 <Card
                   key={tmpl.id}
-                  className={`group overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-[1.25rem] border ${selectedTemplate?.id === tmpl.id ? "ring-2 ring-indigo-500 border-indigo-200 dark:border-indigo-800 shadow-[0_8px_30px_rgba(99,102,241,0.2)]" : "border-slate-200/60 dark:border-slate-800"}`}
+                  className={`group overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-[1.25rem] border ${selectedTemplate?.id === tmpl.id ? "ring-2 ring-primary border-primary/50 shadow-[0_8px_30px_rgba(167,199,58,0.2)]" : "border-slate-200/60 dark:border-slate-800"}`}
                   onClick={() => handleSelectTemplate(tmpl)}
                 >
                   <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-b border-slate-100 dark:border-slate-800">
@@ -253,7 +253,7 @@ export function PlantillasClient({ initialTemplates, events }: { initialTemplate
                     
                     {/* Event Badge Overlay */}
                     {associatedEvent && (
-                      <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 shadow-sm uppercase tracking-wider truncate max-w-[80%] border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-extrabold text-secondary dark:text-primary shadow-sm uppercase tracking-wider truncate max-w-[80%] border border-primary/20">
                         {associatedEvent.titulo}
                       </div>
                     )}

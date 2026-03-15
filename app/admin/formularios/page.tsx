@@ -56,7 +56,7 @@ export default async function FormulariosPage() {
               const formulario = ev.formularios?.[0] as any;
               
               return (
-                <TableRow key={ev.id} className="border-b border-slate-100/50 dark:border-slate-800/50 hover:bg-indigo-50/30 dark:hover:bg-slate-800/50 transition-colors group">
+                <TableRow key={ev.id} className="border-b border-slate-100/50 dark:border-slate-800/50 hover:bg-primary/10 dark:hover:bg-slate-800/50 transition-colors group">
                   <TableCell className="py-4 font-semibold text-slate-800 dark:text-slate-100">
                     <div className="space-y-1">
                       <div className="text-base">{ev.titulo}</div>
@@ -94,7 +94,7 @@ export default async function FormulariosPage() {
                       )}
                       {formulario ? (
                         <Link href={`/admin/formularios/${formulario.id}`}>
-                          <Button size="sm" className="h-10 px-4 gap-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 border-0 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+                          <Button size="sm" className="h-10 px-4 gap-2 text-sm font-bold bg-primary text-primary-foreground hover:bg-secondary border-0 rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
                             <Settings2 className="w-4 h-4" />
                             Configurar Campos
                           </Button>

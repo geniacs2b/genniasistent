@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           {/* Subtle background element */}
-          <div className="fixed top-0 right-0 -m-32 w-96 h-96 bg-indigo-100/40 dark:bg-indigo-900/20 rounded-full blur-3xl pointer-events-none -mr-48 -mt-48"></div>
+          <div className="fixed top-0 right-0 -m-32 w-96 h-96 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl pointer-events-none -mr-48 -mt-48"></div>
           <div className="relative z-10 min-h-full flex flex-col">
             <div className="flex-grow">
               {children}

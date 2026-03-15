@@ -64,7 +64,7 @@ export function EventoForm({ evento, isEdit = false, tiposEvento = [] }: EventoF
 
   return (
     <Card className="max-w-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-[1.5rem] overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-indigo-500 to-sky-400"></div>
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-secondary to-primary brightness-110"></div>
       <CardHeader className="px-8 pt-10 pb-6 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/20 text-center sm:text-left">
         <CardTitle className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">{isEdit ? "Editar Detalles del Evento" : "Crear Nuevo Evento"}</CardTitle>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">

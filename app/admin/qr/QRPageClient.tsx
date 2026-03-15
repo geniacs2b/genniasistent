@@ -61,7 +61,7 @@ function QrCanvas({ token, tokenId, sesionNombre }: { token: string; tokenId: st
   return (
     <div className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
       <canvas ref={canvasRef} className="rounded-xl" />
-      <Button size="sm" variant="outline" className="gap-2 w-full h-9 rounded-xl font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-500/30 dark:text-indigo-400 dark:hover:bg-indigo-500/10 transition-colors" onClick={handleDownload}>
+      <Button size="sm" variant="outline" className="gap-2 w-full h-9 rounded-xl font-bold border-support text-support hover:bg-support/5 transition-colors" onClick={handleDownload}>
         <Download className="w-3.5 h-3.5" />
         Descargar QR
       </Button>
@@ -250,7 +250,7 @@ export function QRPageClient({ sesiones, tokens: initialTokens }: QRPageClientPr
                       <div className="space-y-1">
                         {/* Nombre del evento */}
                         {evento?.titulo && (
-                          <p className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{evento.titulo}</p>
+                          <p className="text-[10px] font-extrabold text-secondary dark:text-primary uppercase tracking-widest">{evento.titulo}</p>
                         )}
                         {/* Nombre de la sesión */}
                         <p className="font-bold text-base text-slate-800 dark:text-slate-100">{sesion?.nombre ?? "—"}</p>

@@ -21,13 +21,13 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Metric 1 */}
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[1.25rem]">
-          <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               Eventos Activos
             </CardTitle>
-            <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="h-10 w-10 bg-primary/10 dark:bg-primary/5 rounded-xl flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-secondary dark:text-primary" />
             </div>
           </CardHeader>
           <CardContent>

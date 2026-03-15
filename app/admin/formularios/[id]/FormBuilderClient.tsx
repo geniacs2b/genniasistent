@@ -253,7 +253,7 @@ export function FormBuilderClient({
             <Trash2 className="w-4 h-4" />
             <span className="hidden sm:inline">{deleting ? "Eliminando..." : "Eliminar Formulario"}</span>
           </Button>
-          <Button size="sm" className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-6 font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" onClick={handleSave} disabled={saving}>
+          <Button size="sm" className="gap-2 bg-primary hover:bg-secondary text-primary-foreground rounded-xl h-10 px-6 font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" onClick={handleSave} disabled={saving}>
             <Save className="w-4 h-4" />
             {saving ? "Guardando..." : "Guardar Cambios"}
           </Button>
@@ -280,7 +280,7 @@ export function FormBuilderClient({
                   className="justify-start font-semibold h-9 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg group text-slate-600 dark:text-slate-300"
                   onClick={() => addCampo(p)}
                 >
-                  <Plus className="w-3.5 h-3.5 mr-2 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                  <Plus className="w-3.5 h-3.5 mr-2 text-slate-400 group-hover:text-primary transition-colors" />
                   {p.label}
                 </Button>
               ))}
@@ -327,11 +327,11 @@ export function FormBuilderClient({
             </CardContent>
           </Card>
           
-          <div className="p-5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-[1.5rem] border border-indigo-100 dark:border-indigo-500/20">
-            <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
+          <div className="p-5 bg-primary/5 dark:bg-primary/10 rounded-[1.5rem] border border-primary/20 dark:border-primary/20">
+            <h4 className="text-xs font-bold text-secondary dark:text-primary mb-2 flex items-center gap-1.5">
               <span className="text-base">💡</span> Tip de uso
             </h4>
-            <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300 leading-relaxed font-medium">
+            <p className="text-[11px] text-secondary/80 dark:text-primary/70 leading-relaxed font-medium">
               Usa los campos rápidos para añadir la información básica requerida por la base de datos automáticamente. Arrastra los campos en el lienzo para reordenarlos.
             </p>
           </div>
@@ -403,10 +403,10 @@ export function FormBuilderClient({
                   </div>
 
                   {campo.tipo_campo === "select" && (
-                     <div className="mt-4 p-5 bg-indigo-50/40 dark:bg-indigo-500/5 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-500/20 space-y-3">
-                      <Label className="text-[11px] uppercase tracking-wider font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
+                     <div className="mt-4 p-5 bg-primary/5 dark:bg-primary/5 rounded-xl border border-dashed border-primary/30 dark:border-primary/20 space-y-3">
+                      <Label className="text-[11px] uppercase tracking-wider font-bold text-secondary dark:text-primary flex items-center gap-2">
                         Opciones de Selección
-                        <span className="text-[10px] font-medium lowercase text-indigo-500/70 dark:text-indigo-400/50">(separadas por coma)</span>
+                        <span className="text-[10px] font-medium lowercase text-secondary/70 dark:text-primary/50">(separadas por coma)</span>
                       </Label>
                       <Input
                         placeholder="Ej. VIP, General, Estudiante"
@@ -416,7 +416,7 @@ export function FormBuilderClient({
                             opciones_json: e.target.value.split(",").map((o) => o.trim()).filter(Boolean),
                           })
                         }
-                        className="bg-white dark:bg-slate-900 h-12 border-indigo-100 dark:border-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500/50 focus:ring-indigo-200 dark:focus:ring-indigo-500/20"
+                        className="bg-white dark:bg-slate-900 h-12 border-support/30 focus:border-primary focus:ring-primary/20"
                       />
                     </div>
                   )}

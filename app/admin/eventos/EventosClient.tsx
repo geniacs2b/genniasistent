@@ -64,7 +64,7 @@ export function EventosClient({ initialEvents }: EventosClientProps) {
         </TableHeader>
         <TableBody>
           {eventos.map((ev) => (
-            <TableRow key={ev.id} className="border-b border-slate-100/50 dark:border-slate-800/50 hover:bg-indigo-50/30 dark:hover:bg-slate-800/50 transition-colors group">
+            <TableRow key={ev.id} className="border-b border-slate-100/50 dark:border-slate-800/50 hover:bg-primary/5 dark:hover:bg-slate-800/50 transition-colors group">
               <TableCell className="font-semibold text-slate-800 dark:text-slate-100 py-4">
                 <div className="flex flex-col">
                   <span className="text-base">{ev.titulo}</span>
@@ -118,7 +118,7 @@ export function EventosClient({ initialEvents }: EventosClientProps) {
                   />
                   <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 pl-2 ml-1">
                     <Link href={`/admin/eventos/${ev.id}/editar`}>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-secondary hover:bg-primary/10">
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </Link>
