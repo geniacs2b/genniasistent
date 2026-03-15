@@ -37,13 +37,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800 hidden md:flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10 relative">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800/60">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 flex items-center justify-center">
+            <div className="h-8 w-8 flex items-center justify-center">
               <img src="/assets/Logo asistencia.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="font-extrabold text-xl tracking-tighter text-slate-800 dark:text-white uppercase italic">
+            <span className="font-extrabold text-lg tracking-tighter text-slate-800 dark:text-white uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
             </span>
           </Link>
+          <div className="mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-black text-primary/60 block mb-1">Plataforma</span>
+            <span className="font-extrabold text-xl tracking-tighter text-slate-800 dark:text-white uppercase italic">
+              Genni<span className="text-primary italic">Asistent</span>
+            </span>
+          </div>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           {sidebarLinks.map((link) => {
