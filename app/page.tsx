@@ -28,22 +28,25 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="px-4 py-24 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800/50 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+        <section className="px-4 py-24 bg-gradient-to-b from-slate-50 to-white text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
           
           <div className="container max-w-4xl mx-auto space-y-10">
             <div className="flex justify-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <img src="/assets/Logo asistencia.png" alt="Logo" className="h-24 w-24 object-contain drop-shadow-2xl" />
+              <div className="p-4 bg-structural rounded-3xl shadow-2xl shadow-structural/20">
+                <img src="/assets/Logo asistencia.png" alt="Logo" className="h-24 w-24 object-contain" />
+              </div>
             </div>
             <div className="space-y-6">
-              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-1 text-sm font-bold text-primary animate-pulse">
+              <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-black text-secondary animate-pulse uppercase tracking-wider">
                 Software de Gestión de Eventos & Asistencia
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight lg:text-6xl text-slate-800 dark:text-slate-100 max-w-3xl mx-auto">
-                Tus eventos, bajo control
+              <h1 className="text-4xl font-extrabold tracking-tight lg:text-7xl text-structural max-w-3xl mx-auto leading-[1.1]">
+                Tus eventos, <br />
+                <span className="text-primary italic">bajo control</span>
               </h1>
-              <p className="text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
-                Inscríbete a capacitaciones, gestiona tu asistencia mediante códigos QR y descarga tus certificados de forma automática con <span className="text-primary font-bold lowercase">Genni</span><span className="text-primary font-bold">Asistent</span>.
+              <p className="text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto font-medium">
+                Inscríbete a capacitaciones, gestiona tu asistencia mediante códigos QR y descarga tus certificados con <span className="text-structural font-black uppercase">Genni</span><span className="text-primary font-black uppercase tracking-tighter">Asistent</span>.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">

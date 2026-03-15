@@ -34,19 +34,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
       {/* Premium Sidebar */}
-      <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800 hidden md:flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10 relative">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800/60">
+      <aside className="w-64 bg-structural dark:bg-slate-950 border-r border-support hidden md:flex flex-col shadow-2xl z-10 relative">
+        <div className="p-6 border-b border-support/50">
           <div className="pt-2">
-            <span className="text-[10px] uppercase tracking-[0.2em] font-black text-primary/60 block mb-1">Plataforma</span>
-            <span className="font-extrabold text-xl tracking-tighter text-slate-800 dark:text-white uppercase italic">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-black text-primary block mb-1">Plataforma</span>
+            <span className="font-extrabold text-xl tracking-tighter text-white uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
             </span>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-thin scrollbar-thumb-support">
           {sidebarLinks.map((link) => {
             const Icon = link.icon;
-            // Exact match for dashboard to prevent it from always being highlighted if others start with /admin
             const isActive = link.href === "/admin/dashboard" 
               ? pathname === "/admin/dashboard" 
               : pathname.startsWith(link.href);
@@ -57,26 +56,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={link.href}
                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
                   isActive 
-                    ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-primary font-semibold" 
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
+                    ? "bg-primary text-structural font-bold shadow-lg shadow-primary/20" 
+                    : "text-white/70 hover:bg-white/5 hover:text-white font-medium"
                 }`}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-primary/40"></div>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-structural rounded-r-full"></div>
                 )}
-                <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"}`} />
+                <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-structural" : "text-white/40 group-hover:text-primary"}`} />
                 {link.name}
               </Link>
             );
           })}
         </nav>
         
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800/60">
+        <div className="p-4 border-t border-support/50">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors group"
+            className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors group"
           >
-            <LogOut className="h-4 w-4 text-rose-500/70 group-hover:text-rose-600 transition-colors" />
+            <LogOut className="h-4 w-4 text-rose-400/70 group-hover:text-rose-400 transition-colors" />
             Cerrar Sesión
           </button>
         </div>
@@ -85,10 +84,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content Workspace */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Mobile Header (Only visible when sidebar is hidden) */}
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-4 md:hidden z-10 sticky top-0 shadow-sm">
+        <header className="h-16 bg-structural border-b border-support flex items-center justify-between px-4 md:hidden z-10 sticky top-0 shadow-lg">
           <div className="flex items-center gap-3">
-            <img src="/assets/Logo asistencia.png" alt="Logo" className="h-8 w-8 object-contain" />
-            <span className="font-extrabold text-sm tracking-tighter text-slate-800 dark:text-white uppercase italic">
+            <div className="h-8 w-8 bg-white rounded flex items-center justify-center p-1">
+              <img src="/assets/Logo asistencia.png" alt="Logo" className="h-full w-full object-contain" />
+            </div>
+            <span className="font-extrabold text-sm tracking-tighter text-white uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
             </span>
           </div>

@@ -4,26 +4,30 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    --background: 210 20% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 238 85% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --primary: 74 55% 51%; /* Verde Lima #A7C73A */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 120 35% 37%; /* Verde Tecnológico #3E7F3E */
+    --secondary-foreground: 0 0% 100%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 74 55% 92%;
+    --accent-foreground: 120 35% 37%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 238 85% 60%;
-    --radius: 0.75rem;
+    --border: 215 30% 88%;
+    --input: 215 30% 88%;
+    --ring: 74 55% 51%;
+    --radius: 1rem;
+    
+    /* Structural Colors */
+    --structural-blue: 219 45% 21%; /* #1E2F4F */
+    --support-blue: 215 40% 31%; /* #2F4A6F */
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -32,19 +36,22 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 238 85% 65%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 74 55% 55%;
+    --primary-foreground: 219 45% 21%;
+    --secondary: 120 35% 37%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 219 45% 25%;
+    --accent-foreground: 74 55% 51%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 238 85% 65%;
+    --border: 215 40% 25%;
+    --input: 215 40% 25%;
+    --ring: 74 55% 55%;
+
+    --structural-blue: 219 45% 15%;
+    --support-blue: 215 40% 25%;
   }
 }
 
