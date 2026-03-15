@@ -40,13 +40,13 @@ export default async function AdminDashboardPage() {
         
         {/* Metric 2 */}
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[1.25rem]">
-          <div className="absolute top-0 left-0 w-full h-1 bg-sky-500"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               Total Inscritos
             </CardTitle>
-            <div className="h-10 w-10 bg-sky-50 dark:bg-sky-500/10 rounded-xl flex items-center justify-center">
-              <Users className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+            <div className="h-10 w-10 bg-secondary/10 dark:bg-primary/5 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5 text-secondary dark:text-primary" />
             </div>
           </CardHeader>
           <CardContent>

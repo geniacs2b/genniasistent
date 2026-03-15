@@ -343,8 +343,8 @@ export function FormBuilderClient({
             <Card key={campo.id} className="group hover:border-primary/40 border border-slate-200/60 dark:border-slate-800 transition-all duration-300 shadow-sm hover:shadow-md bg-white dark:bg-slate-900 rounded-[1.5rem] overflow-hidden">
               <div className="flex h-full">
                 {/* Drag Handle Area */}
-                <div className="w-12 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-start py-6 border-r border-slate-100 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
-                  <GripVertical className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                <div className="w-12 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-start py-6 border-r border-slate-100 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:bg-primary/5 transition-colors">
+                  <GripVertical className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
                   <span className="text-[10px] font-extrabold text-slate-400 mt-2">{idx + 1}</span>
                 </div>
                 

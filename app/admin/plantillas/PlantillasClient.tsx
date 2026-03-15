@@ -206,7 +206,7 @@ export function PlantillasClient({ initialTemplates, events }: { initialTemplate
                 type="file" 
                 accept="image/png,image/jpeg,image/jpg" 
                 onChange={handleFileChange}
-                className="h-12 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium text-slate-800 dark:text-slate-100 rounded-xl pt-2.5 cursor-pointer file:cursor-pointer file:bg-indigo-50 file:dark:bg-indigo-500/10 file:text-indigo-600 file:dark:text-indigo-400 file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:font-semibold" 
+                className="h-12 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium text-slate-800 dark:text-slate-100 rounded-xl pt-2.5 cursor-pointer file:cursor-pointer file:bg-primary/10 file:text-secondary file:dark:text-primary file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:font-semibold" 
               />
             </div>
           </div>
