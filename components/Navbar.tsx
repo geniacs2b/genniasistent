@@ -8,7 +8,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4 md:px-8">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="h-10 w-10 flex items-center justify-center">
-            <img src="/assets/logo-genniasistent.png" alt="GenniAsistent" className="h-full w-full object-contain" />
+            <img src="/assets/Logo asistencia.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
           <span className="font-extrabold text-2xl tracking-tighter text-slate-900 dark:text-white uppercase italic">
             Genni<span className="text-primary italic">Asistent</span>
