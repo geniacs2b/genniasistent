@@ -28,9 +28,17 @@ function PendingContent() {
   const [canceling, setCanceling] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (!personaId || !eventId) {
+      console.warn("[PendingPage] Missing IDs, redirecting to home.");
       router.push("/");
       return;
     }

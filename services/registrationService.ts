@@ -57,8 +57,14 @@ export const registrationService = {
       throw new Error(error.message || 'Ocurrió un error en el registro.');
     }
     
-    console.log(`[RegistrationService] RPC éxito. ID Inscripción: ${data?.inscripcion_id}`);
-    return data;
+    console.log(`[RegistrationService] RPC éxito. ID Inscripción: ${data?.p_inscripcion_id}`);
+    return {
+      success: data.success,
+      persona_id: data.p_persona_id,
+      inscripcion_id: data.p_inscripcion_id,
+      token_verificacion: data.p_token_verificacion,
+      error: data.error
+    };
   },
 
   /**
@@ -91,7 +97,13 @@ export const registrationService = {
       throw new Error(error.message);
     }
 
-    return data;
+    return {
+      success: data.success,
+      persona_id: data.p_persona_id,
+      inscripcion_id: data.p_inscripcion_id,
+      token_verificacion: data.p_token_verificacion,
+      error: data.error
+    };
   },
 
   /**
