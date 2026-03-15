@@ -46,15 +46,16 @@ export default function AsistenciaPage() {
       return;
     }
 
-    const info = res.data;
+    const info = Array.isArray(res.data) ? res.data[0] : res.data;
     console.log("QR Token Info:", info);
     setQrInfo(info);
 
-    // The RPC might return { activo, ok, mensaje, sesion, ... } — handle multiple response shapes
-    const isActive = info?.activo === true || info?.ok === true || info?.estado === 'activo';
+    // Validación según los campos reales devueltos por la RPC
+    const isActive = info?.token_activo === true && info?.estado_qr === 'activo';
+    
     if (!isActive) {
       setViewState('inactive');
-      setQrError(info?.mensaje || "Este QR no está activo en este momento.");
+      setQrError("Este código QR no está activo o ya ha caducado.");
     } else {
       setViewState('ready');
     }
