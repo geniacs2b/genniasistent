@@ -194,7 +194,7 @@ export default function AsistenciaPage() {
                   <div className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-right">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Fecha</p>
                     <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      Regitrado en: {qrInfo.sesion_id ? "Día del Evento" : "—"}
+                      {qrInfo.sesion_fecha ? formatToBogota(qrInfo.sesion_fecha, { day: '2-digit', month: 'short', year: 'numeric' }) : "Día del Evento"}
                     </p>
                   </div>
                 </div>
