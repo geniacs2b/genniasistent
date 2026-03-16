@@ -63,6 +63,9 @@ export default async function InscripcionPage({
             fechaCierre={fecha_cierre}
             formSlug={params.evento}
             initialData={initialData}
+            imagenFormularioPath={(evento as any).imagen_formulario_path}
+            imagenFormularioAlt={(evento as any).imagen_formulario_alt}
+            mostrarImagenFormulario={(evento as any).mostrar_imagen_formulario}
           />
         </div>
       </div>

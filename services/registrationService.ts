@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabaseServer';
-import { formatToBogota, isAvailable } from '@/lib/date';
+import { formatToBogota, isAvailable, getBogotaDateTime } from '@/lib/date';
 import { normalizePersonName } from '@/lib/string-utils';
 
 export const registrationService = {
@@ -17,10 +17,20 @@ export const registrationService = {
       .single();
 
     if (form && !formError) {
-      const { available, isBefore, isAfter } = isAvailable(form.fecha_apertura, form.fecha_cierre);
+      // Obtener datos del evento para el fallback
+      const { data: evento } = await supabase
+        .from('eventos')
+        .select('fecha_inicio, hora_inicio, fecha_fin, hora_fin')
+        .eq('id', eventoId)
+        .single();
+
+      const apertura = form.fecha_apertura || (evento ? getBogotaDateTime(evento.fecha_inicio, evento.hora_inicio)?.toISOString() : null);
+      const cierre = form.fecha_cierre || (evento ? getBogotaDateTime(evento.fecha_fin, evento.hora_fin)?.toISOString() : null);
+
+      const { available, isBefore, isAfter } = isAvailable(apertura, cierre);
       
       if (isBefore) {
-        throw new Error(`Las inscripciones aún no han abierto (Abre el ${formatToBogota(form.fecha_apertura)})`);
+        throw new Error(`Las inscripciones aún no han abierto (Abre el ${formatToBogota(apertura)})`);
       }
       if (isAfter) {
         throw new Error(`Las inscripciones para este evento ya cerraron.`);

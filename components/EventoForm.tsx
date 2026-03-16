@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { createEvento, updateEvento } from "@/app/actions/eventos";
 import { toBogotaISO, getBogotaDate, getBogotaDateTime } from "@/lib/date";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { createClient as createBrowserClient } from "@/lib/supabaseClient";
+import { Image as ImageIcon, Upload, X, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface EventoFormProps {
   evento?: any;
@@ -29,12 +32,64 @@ export function EventoForm({ evento, isEdit = false, tiposEvento = [] }: EventoF
   const [fechaInicio, setFechaInicio] = useState<Date | undefined>(getBogotaDateTime(evento?.fecha_inicio, evento?.hora_inicio) || undefined);
   const [fechaFin, setFechaFin] = useState<Date | undefined>(getBogotaDateTime(evento?.fecha_fin, evento?.hora_fin) || undefined);
 
+  // States for Image
+  const [imagenPath, setImagenPath] = useState(evento?.imagen_formulario_path || "");
+  const [imagenAlt, setImagenAlt] = useState(evento?.imagen_formulario_alt || "");
+  const [mostrarImagen, setMostrarImagen] = useState(evento?.mostrar_imagen_formulario ?? false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (evento?.imagen_formulario_path) {
+      const supabase = createBrowserClient();
+      const { data: { publicUrl } } = supabase.storage.from('formularios-eventos').getPublicUrl(evento.imagen_formulario_path);
+      setPreviewUrl(publicUrl);
+    }
+  }, [evento?.imagen_formulario_path]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Si es un evento nuevo, necesitamos guardarlo primero o generar un ID temporal. 
+    // Para simplificar y seguir las reglas, usaremos el ID si existe, o un timestamp si es nuevo.
+    const folderId = evento?.id || 'temp-' + Date.now();
+    
+    setUploading(true);
+    try {
+      const supabase = createBrowserClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `header-${Date.now()}.${fileExt}`;
+      const filePath = `eventos/${folderId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('formularios-eventos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      setImagenPath(filePath);
+      const { data: { publicUrl } } = supabase.storage.from('formularios-eventos').getPublicUrl(filePath);
+      setPreviewUrl(publicUrl);
+      toast({ title: "Imagen subida", description: "La imagen se ha cargado correctamente." });
+    } catch (error: any) {
+      toast({ title: "Error al subir", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = async () => {
+    if (!imagenPath) return;
+    
+    setImagenPath("");
+    setPreviewUrl(null);
+    toast({ title: "Imagen removida", description: "Recuerda guardar los cambios para confirmar." });
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +98,9 @@ export function EventoForm({ evento, isEdit = false, tiposEvento = [] }: EventoF
     formData.set("modalidad", modalidad);
     formData.set("tipo_evento_id", tipoEventoId);
     formData.set("activo", String(activo));
+    formData.set("imagen_formulario_path", imagenPath);
+    formData.set("imagen_formulario_alt", imagenAlt);
+    formData.set("mostrar_imagen_formulario", String(mostrarImagen));
 
     try {
       if (isEdit && evento) {
@@ -183,8 +241,93 @@ export function EventoForm({ evento, isEdit = false, tiposEvento = [] }: EventoF
               </div>
             </div>
           </div>
+          
+          {/* SECCIÓN 4: Personalización Visual (Formulario) */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+              <span className="text-xl">🎨</span>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Personalización del Formulario Públic</h3>
+            </div>
 
-          {/* SECCIÓN 4: Estado (Solo Edición) */}
+            <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10">
+              <CardContent className="p-6 space-y-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Vista Previa / Upload */}
+                  <div className="w-full md:w-1/3">
+                    <Label className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2 block uppercase tracking-wider">Imagen de Cabecera</Label>
+                    <div className="relative group aspect-[16/6] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                      {previewUrl ? (
+                        <>
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="rounded-full shadow-lg">
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 px-4 text-center">
+                          <ImageIcon className="w-8 h-8 text-slate-400" />
+                          <p className="text-xs text-slate-400 font-medium">{uploading ? "Subiendo..." : "No hay imagen seleccionada"}</p>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={uploading}
+                            className="mt-2 text-[10px] h-8 font-bold uppercase tracking-tight bg-white dark:bg-slate-900" 
+                            onClick={() => document.getElementById('file-upload')?.click()}
+                          >
+                            <Upload className="w-3 h-3 mr-1.5" />
+                            {uploading ? "Cargando..." : "Subir Imagen"}
+                          </Button>
+                          <input 
+                            id="file-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleFileUpload} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-2 font-medium italic">Recomendado: 1200x400px o similar.</p>
+                  </div>
+
+                  {/* Configuración */}
+                  <div className="flex-1 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="img_alt" className="text-sm font-bold text-slate-700 dark:text-slate-300">Texto Alternativo (SEO/Accesibilidad)</Label>
+                      <Input 
+                        id="img_alt" 
+                        value={imagenAlt} 
+                        onChange={(e) => setImagenAlt(e.target.value)} 
+                        placeholder="Ej. Logo de la convención nacional" 
+                        className="bg-white dark:bg-slate-900"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 transition-all hover:shadow-md">
+                      <Checkbox 
+                        id="show_img" 
+                        checked={mostrarImagen} 
+                        onCheckedChange={(checked) => setMostrarImagen(checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="show_img" className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer">
+                          {mostrarImagen ? <Eye className="w-4 h-4 text-primary" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+                          Mostrar imagen en el formulario público
+                        </Label>
+                        <p className="text-xs text-slate-500 font-medium">Habilita o deshabilita la visualización de la cabecera en el formulario.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* SECCIÓN 5: Estado (Solo Edición) */}
           {isEdit && (
             <div className="space-y-6 pt-2">
                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">

@@ -1,0 +1,1 @@
+["id","tipo_documento","numero_documento","nombres","apellidos","nombre_completo","correo","correo_verificado","fecha_verificacion_correo","telefono","empresa","cargo","municipio","departamento","tratamiento_datos_aceptado","fecha_aceptacion_tratamiento","created_at","updated_at"]

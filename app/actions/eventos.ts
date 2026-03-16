@@ -25,6 +25,9 @@ export async function createEvento(formData: FormData) {
     min_sesiones_certificado: formData.get("min_sesiones_certificado") ? Number(formData.get("min_sesiones_certificado")) : null,
     tipo_evento_id: formData.get("tipo_evento_id") as string,
     activo: true,
+    imagen_formulario_path: formData.get("imagen_formulario_path") as string || null,
+    imagen_formulario_alt: formData.get("imagen_formulario_alt") as string || null,
+    mostrar_imagen_formulario: formData.get("mostrar_imagen_formulario") === "true",
   }).select().single();
 
   if (error) throw new Error(error.message);
@@ -62,6 +65,9 @@ export async function updateEvento(id: string, formData: FormData) {
     min_sesiones_certificado: formData.get("min_sesiones_certificado") ? Number(formData.get("min_sesiones_certificado")) : null,
     tipo_evento_id: formData.get("tipo_evento_id") as string,
     activo: formData.get("activo") === "true",
+    imagen_formulario_path: formData.get("imagen_formulario_path") as string || null,
+    imagen_formulario_alt: formData.get("imagen_formulario_alt") as string || null,
+    mostrar_imagen_formulario: formData.get("mostrar_imagen_formulario") === "true",
   }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/eventos");

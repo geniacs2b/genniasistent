@@ -18,6 +18,7 @@ import { formatToBogota, isAvailable } from "@/lib/date";
 import { checkExistingRegistration } from "@/app/actions/validation";
 import { Loader2, AlertCircle, XCircle, MapPin, Building2, CreditCard } from "lucide-react";
 import { COLOMBIA_DATA } from "@/lib/colombiaData";
+import { createClient } from "@/lib/supabaseClient";
 
 const DOCUMENT_TYPES = [
   "Cédula de ciudadanía",
@@ -69,8 +70,11 @@ interface DynamicFormProps {
   fields: any[];
   fechaApertura?: string | null;
   fechaCierre?: string | null;
-  formSlug: string;
+  formSlug?: string;
   initialData?: any;
+  imagenFormularioPath?: string | null;
+  imagenFormularioAlt?: string | null;
+  mostrarImagenFormulario?: boolean;
 }
 
 export function DynamicForm({ 
@@ -85,9 +89,15 @@ export function DynamicForm({
   fechaApertura, 
   fechaCierre,
   formSlug,
-  initialData
+  initialData,
+  imagenFormularioPath,
+  imagenFormularioAlt,
+  mostrarImagenFormulario
 }: DynamicFormProps) {
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [publicImageUrl, setPublicImageUrl] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [validatingDoc, setValidatingDoc] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
@@ -176,6 +186,13 @@ export function DynamicForm({
       acepta_tratamiento: z.boolean().refine((val) => val === true, { message: "Debe aceptar el tratamiento de datos para continuar" })
     });
   };
+  useEffect(() => {
+    if (mostrarImagenFormulario && imagenFormularioPath) {
+      const supabase = createClient();
+      const { data: { publicUrl } } = supabase.storage.from('formularios-eventos').getPublicUrl(imagenFormularioPath);
+      setPublicImageUrl(publicUrl);
+    }
+  }, [mostrarImagenFormulario, imagenFormularioPath]);
 
   const schema = buildZodSchema();
   
@@ -408,14 +425,14 @@ export function DynamicForm({
       }
 
       const params = new URLSearchParams({
-        personaId: finalPersonaId,
-        inscripcionId: res.data?.inscripcion_id || initialData?.inscripcion_id || '',
-        eventId: eventoId,
-        email: values.correo,
-        doc: values.numero_documento,
-        type: values.tipo_documento,
-        event: eventoTitulo,
-        slug: formSlug
+        personaId: finalPersonaId.toString(),
+        inscripcionId: (res.data?.inscripcion_id || initialData?.inscripcion_id || '').toString(),
+        eventId: eventoId.toString(),
+        email: (values.correo || '').toString(),
+        doc: (values.numero_documento || '').toString(),
+        type: (values.tipo_documento || '').toString(),
+        event: (eventoTitulo || '').toString(),
+        slug: (formSlug || '').toString()
       });
       
       router.push(`/inscripcion-pendiente?${params.toString()}`);
@@ -469,15 +486,26 @@ export function DynamicForm({
         </div>
       </div>
 
-      <Card className="shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-0 bg-white/95 backdrop-blur-xl overflow-hidden rounded-[1.5rem] dark:bg-slate-900/90 relative">
+      <Card className="w-full border-none shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl overflow-hidden ring-1 ring-slate-200/50 dark:ring-slate-800/50">
+      {/* Header Image */}
+      {mostrarImagenFormulario && publicImageUrl && (
+        <div className="w-full aspect-[16/6] relative overflow-hidden">
+          <img 
+            src={publicImageUrl} 
+            alt={imagenFormularioAlt || "Imagen de cabecera"} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+        </div>
+      )}
+
+      <CardHeader className="p-8 sm:p-10 pb-6 relative border-b border-slate-100 dark:border-slate-800/50">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-secondary to-primary brightness-110"></div>
-        
-        <CardHeader className="pb-6 pt-10 px-6 sm:px-10 border-b border-slate-100 dark:border-slate-800/50">
-          <CardTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Registro de Asistencia</CardTitle>
-          <CardDescription className="text-base mt-2 text-slate-500 dark:text-slate-400">
-            Por favor, ingresa tu información para confirmar tu participación en este evento.
-          </CardDescription>
-        </CardHeader>
+        <CardTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Registro de Asistencia</CardTitle>
+        <CardDescription className="text-base mt-2 text-slate-500 dark:text-slate-400">
+          Por favor, ingresa tu información para confirmar tu participación en este evento.
+        </CardDescription>
+      </CardHeader>
         
         <CardContent className="px-6 sm:px-10 py-8">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
