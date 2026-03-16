@@ -1,16 +1,20 @@
 import { emailConfigService } from "@/services/emailConfigService";
 import { CorreosClient } from "./CorreosClient";
 import { unstable_noStore as noStore } from 'next/cache';
+import { createClient } from "@/lib/supabaseServer";
 
 export const dynamic = 'force-dynamic';
 
 export default async function CorreosPage() {
   noStore();
   
-  // Obtener configuración y plantillas en paralelo
-  const [config, templates] = await Promise.all([
+  const supabase = createClient();
+
+  // Obtener configuración, plantillas y eventos en paralelo
+  const [config, templates, { data: eventos }] = await Promise.all([
     emailConfigService.getSystemConfig().catch(() => null),
-    emailConfigService.getEmailTemplates().catch(() => [])
+    emailConfigService.getEmailTemplates().catch(() => []),
+    supabase.from("eventos").select("id, titulo").eq("activo", true).order("titulo")
   ]);
 
   return (
@@ -26,7 +30,11 @@ export default async function CorreosPage() {
         </div>
       </div>
 
-      <CorreosClient initialConfig={config} initialTemplates={templates} />
+      <CorreosClient 
+        initialConfig={config} 
+        initialTemplates={templates} 
+        eventos={eventos || []}
+      />
     </div>
   );
 }

@@ -9,13 +9,14 @@ import { Settings, Mail } from "lucide-react";
 interface CorreosClientProps {
   initialConfig: any;
   initialTemplates: any[];
+  eventos: any[];
 }
 
 // Nota: He creado este componente localmente para evitar dependencias externas de Radix Tabs 
 // si no estuvieran instaladas, pero intentaré usar un sistema de pestañas premium personalizado 
 // para mantener la estética.
 
-export function CorreosClient({ initialConfig, initialTemplates }: CorreosClientProps) {
+export function CorreosClient({ initialConfig, initialTemplates, eventos }: CorreosClientProps) {
   const [activeTab, setActiveTab] = useState("config");
 
   return (
@@ -50,7 +51,10 @@ export function CorreosClient({ initialConfig, initialTemplates }: CorreosClient
         {activeTab === "config" ? (
           <ConfigCorreoTab config={initialConfig} />
         ) : (
-          <PlantillasCorreoTab initialTemplates={initialTemplates} />
+          <PlantillasCorreoTab 
+            initialTemplates={initialTemplates} 
+            eventos={eventos} 
+          />
         )}
       </div>
     </div>

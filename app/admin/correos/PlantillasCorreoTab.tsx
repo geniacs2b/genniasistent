@@ -10,27 +10,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { saveEmailTemplateAction, deleteEmailTemplateAction } from "@/app/actions/emailActions";
-import { Plus, Edit, Trash2, Mail, Save, Loader2, X, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Save, Loader2, X, AlertCircle, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PlantillasCorreoTabProps {
   initialTemplates: any[];
+  eventos: any[];
 }
 
-export function PlantillasCorreoTab({ initialTemplates }: PlantillasCorreoTabProps) {
+export function PlantillasCorreoTab({ initialTemplates, eventos }: PlantillasCorreoTabProps) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [templateName, setTemplateName] = useState("");
   const { toast } = useToast();
 
   const handleEdit = (template: any) => {
     setEditingTemplate(template);
+    setTemplateName(template.nombre_plantilla);
     setIsEditing(true);
   };
 
   const handleNew = () => {
     setEditingTemplate(null);
+    setTemplateName("");
     setIsEditing(true);
   };
 
@@ -149,10 +154,37 @@ export function PlantillasCorreoTab({ initialTemplates }: PlantillasCorreoTabPro
             <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
               {editingTemplate && <input type="hidden" name="id" value={editingTemplate.id} />}
               
+              <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/50 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                 <div className="p-2 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
+                    <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                 </div>
+                 <div className="flex-1">
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1">Asociar con un Evento</p>
+                    <p className="text-[11px] text-amber-700/70 dark:text-amber-400/70 font-medium">Selecciona un evento para usar su título como nombre de la plantilla.</p>
+                 </div>
+                 <Select onValueChange={(val) => setTemplateName(val)}>
+                    <SelectTrigger className="w-full sm:w-[250px] h-10 bg-white dark:bg-slate-950 border-amber-200 dark:border-amber-800 rounded-xl shadow-sm">
+                      <SelectValue placeholder="Elegir Evento..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eventos.map((ev) => (
+                        <SelectItem key={ev.id} value={ev.titulo}>{ev.titulo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                 </Select>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <Label className="text-sm font-bold">Nombre de la Plantilla</Label>
-                  <Input name="nombre_plantilla" defaultValue={editingTemplate?.nombre_plantilla} placeholder="Ej. Confirmación de Registro" required className="rounded-xl" />
+                  <Input 
+                    name="nombre_plantilla" 
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Ej. Confirmación de Registro" 
+                    required 
+                    className="rounded-xl" 
+                  />
                 </div>
                 <div className="space-y-3">
                   <Label className="text-sm font-bold">Tipo de Plantilla</Label>
