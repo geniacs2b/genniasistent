@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { formatToBogota } from "@/lib/date";
+import { formatToBogota, isAvailable } from "@/lib/date";
 import { checkExistingRegistration } from "@/app/actions/validation";
 import { Loader2, AlertCircle, XCircle, MapPin, Building2, CreditCard } from "lucide-react";
 import { COLOMBIA_DATA } from "@/lib/colombiaData";
@@ -85,10 +85,10 @@ export function DynamicForm({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const now = new Date();
-  const isBeforeOpen = fechaApertura ? now < new Date(fechaApertura) : false;
-  const isAfterClose = fechaCierre ? now > new Date(fechaCierre) : false;
-  const isExpired = isBeforeOpen || isAfterClose;
+  const availability = isAvailable(fechaApertura, fechaCierre);
+  const isBeforeOpen = availability.isBefore;
+  const isAfterClose = availability.isAfter;
+  const isExpired = !availability.available;
 
   // Construir validación dinámica con Zod
   const buildZodSchema = () => {

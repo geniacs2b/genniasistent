@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabaseServer';
-import { formatToBogota } from '@/lib/date';
+import { formatToBogota, isAvailable } from '@/lib/date';
 import { normalizePersonName } from '@/lib/string-utils';
 
 export const registrationService = {
@@ -17,11 +17,12 @@ export const registrationService = {
       .single();
 
     if (form && !formError) {
-      const now = new Date();
-      if (form.fecha_apertura && now < new Date(form.fecha_apertura)) {
+      const { available, isBefore, isAfter } = isAvailable(form.fecha_apertura, form.fecha_cierre);
+      
+      if (isBefore) {
         throw new Error(`Las inscripciones aún no han abierto (Abre el ${formatToBogota(form.fecha_apertura)})`);
       }
-      if (form.fecha_cierre && now > new Date(form.fecha_cierre)) {
+      if (isAfter) {
         throw new Error(`Las inscripciones para este evento ya cerraron.`);
       }
     }

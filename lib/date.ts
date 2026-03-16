@@ -167,22 +167,28 @@ export function toBogotaISO(date: string | Date | null | undefined): string {
 }
 
 /**
- * Interpreta un string de un input local como hora de Bogotá y lo devuelve en UTC ISO para Supabase.
+ * Interpreta un string de un input local (YYYY-MM-DDThh:mm) como hora de Bogotá y lo devuelve en UTC ISO para Supabase.
  */
 export function fromBogotaLocal(localString: string): string | null {
   if (!localString) return null;
   try {
-    const [datePart, timePart] = localString.split('T');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hour, minute] = timePart.split(':').map(Number);
+    // Si ya incluye zona horaria (ej: de un Date.toISOString()), lo devolvemos tal cual
+    if (localString.includes('Z') || localString.match(/[+-]\d{2}:\d{2}$/)) {
+      return localString;
+    }
+
+    // Si es un formato YYYY-MM-DDThh:mm, le forzamos el offset de Bogotá para que el constructor de Date lo maneje correctamente
+    const isoWithOffset = localString.includes('T') 
+      ? `${localString}:00-05:00` 
+      : `${localString}T00:00:00-05:00`;
     
-    // Bogotá es UTC-5
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour + 5, minute));
-    return utcDate.toISOString();
+    const d = new Date(isoWithOffset);
+    return isNaN(d.getTime()) ? null : d.toISOString();
   } catch (error) {
     return null;
   }
 }
+
 /**
  * Devuelve la parte de la fecha (YYYY-MM-DD) en horario de Bogotá.
  * Útil para inputs de tipo date y comparaciones por día.
@@ -212,4 +218,35 @@ export function getBogotaDateString(date: string | Date | null | undefined): str
   } catch (error) {
     return "";
   }
+}
+
+/**
+ * Devuelve la fecha/hora actual garantizada como un objeto Date.
+ * Útil para comparaciones contra fechas provenientes de la DB (UTC).
+ */
+export function getNow(): Date {
+  return new Date();
+}
+
+/**
+ * Verifica si un formulario está disponible basado en sus fechas de apertura y cierre (en UTC).
+ * Realiza la comparación contra el momento actual.
+ */
+export function isAvailable(apertura: string | Date | null | undefined, cierre: string | Date | null | undefined): {
+  available: boolean;
+  isBefore: boolean;
+  isAfter: boolean;
+} {
+  const now = getNow();
+  const dOpen = apertura ? new Date(apertura) : null;
+  const dClose = cierre ? new Date(cierre) : null;
+
+  const isBefore = dOpen ? now < dOpen : false;
+  const isAfter = dClose ? now > dClose : false;
+
+  return {
+    available: !isBefore && !isAfter,
+    isBefore,
+    isAfter
+  };
 }
