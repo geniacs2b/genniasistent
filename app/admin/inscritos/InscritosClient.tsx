@@ -116,7 +116,15 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">{persona?.correo}</TableCell>
+                  <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {persona?.correo_verificado ? (
+                      <Badge variant="default" className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border-0 flex items-center gap-1.5 w-fit uppercase tracking-wider">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Verificado
+                      </Badge>
+                    ) : (
+                      persona?.correo
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     <Badge variant="outline" className="border-slate-200 dark:border-slate-700 font-bold text-[10px] uppercase">
                       {evento?.titulo}
