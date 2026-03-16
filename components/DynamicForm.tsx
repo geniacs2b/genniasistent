@@ -82,6 +82,16 @@ export function DynamicForm({
   const { toast } = useToast();
   const router = useRouter();
 
+  // 0. Normalizar campos (DB -> UI)
+  const normalizedFields = (fields || []).map(f => {
+    let type = f.tipo_campo;
+    if (type === 'documento') type = 'documento_colombia';
+    if (type === 'ubicacion') type = 'ubicacion_colombia';
+    if (type === 'empresa') type = 'empresa_colombia';
+    if (type === 'numero') type = 'number';
+    return { ...f, tipo_campo: type };
+  });
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -94,24 +104,35 @@ export function DynamicForm({
   useEffect(() => {
     if (mounted) {
       console.log("--- DIAGNÓSTICO DISPONIBILIDAD ---");
-      console.log("Apertura (DB):", fechaApertura);
-      console.log("Cierre (DB):", fechaCierre);
+      console.log("Evento ID:", eventoId);
+      console.log("Evento Título:", eventoTitulo);
+      console.log("Formulario ID:", formularioId);
+      console.log("Form Slug:", formSlug);
+      console.log("Apertura (DB/Prop):", fechaApertura);
+      console.log("Cierre (DB/Prop):", fechaCierre);
+      console.log("Evento Fecha Inicio (Prop):", eventoFechaInicio);
+      console.log("Evento Hora Inicio (Prop):", eventoHoraInicio);
       console.log("Ahora (System):", new Date().toISOString());
       console.log("Apertura (Parsed):", fechaApertura ? new Date(fechaApertura).toISOString() : 'N/A');
       console.log("Cierre (Parsed):", fechaCierre ? new Date(fechaCierre).toISOString() : 'N/A');
       console.log("isBeforeOpen:", isBeforeOpen);
       console.log("isAfterClose:", isAfterClose);
       console.log("isExpired:", isExpired);
-      console.log("----------------------------------");
+      console.log("--- DIAGNÓSTICO CAMPOS ---");
+      fields.forEach(f => {
+        const normalized = normalizedFields.find(nf => nf.id === f.id);
+        console.log(`Campo: ${f.label} | Original: ${f.tipo_campo} | Normalizado: ${normalized?.tipo_campo}`);
+      });
+      console.log("---------------------------");
     }
-  }, [mounted, isBeforeOpen, isAfterClose, isExpired, fechaApertura, fechaCierre]);
+  }, [mounted, isBeforeOpen, isAfterClose, isExpired, fechaApertura, fechaCierre, fields, normalizedFields]);
 
   // Construir validación dinámica con Zod
   const buildZodSchema = () => {
     let schemaObj: any = {};
     
     // Iteramos por los campos dinámicos
-    fields.forEach((field) => {
+    normalizedFields.forEach((field) => {
       if (field.tipo_campo === 'checkbox' && field.obligatorio) {
         schemaObj[field.id] = z.boolean().refine((val) => val === true, { message: "Debe aceptar esta condición" });
       } else if (field.tipo_campo === 'documento_colombia') {
@@ -123,6 +144,10 @@ export function DynamicForm({
       } else if (field.tipo_campo === 'empresa_colombia') {
         schemaObj[`${field.id}_nombre`] = field.obligatorio ? z.string().min(1, "Ingrese el nombre de la empresa") : z.any().optional();
         schemaObj[`${field.id}_tipo`] = field.obligatorio ? z.string().min(1, "Seleccione el tipo de empresa") : z.any().optional();
+      } else if (field.tipo_campo === 'tel') {
+        schemaObj[field.id] = field.obligatorio ? z.string().min(1, "Este campo es obligatorio") : z.any().optional();
+      } else if (field.tipo_campo === 'date') {
+        schemaObj[field.id] = field.obligatorio ? z.string().min(1, "Seleccione una fecha") : z.any().optional();
       } else if (field.obligatorio) {
         if (field.tipo_campo === 'email') {
           schemaObj[field.id] = z.string().email("Correo electrónico inválido");
@@ -145,7 +170,7 @@ export function DynamicForm({
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      ...fields.reduce((acc, field) => {
+      ...normalizedFields.reduce((acc, field) => {
         // Si hay datos iniciales en respuestas_formulario, usarlos
         if (initialData?.respuestas?.[field.id] !== undefined) {
           acc[field.id] = initialData.respuestas[field.id];
@@ -286,7 +311,7 @@ export function DynamicForm({
       tratamiento_datos_aceptado: data.acepta_tratamiento || false
     };
 
-    fields.forEach(f => {
+    normalizedFields.forEach(f => {
       if (f.tipo_campo === 'documento_colombia') {
         values.tipo_documento = data[`${f.id}_tipo`];
         values.numero_documento = data[`${f.id}_numero`];
@@ -443,7 +468,7 @@ export function DynamicForm({
         <CardContent className="px-6 sm:px-10 py-8">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
-          {fields.map((field) => (
+          {normalizedFields.map((field) => (
             <div key={field.id} className="space-y-3">
               <div className="flex items-center gap-2">
                 {field.tipo_campo === 'checkbox' ? (
@@ -472,7 +497,7 @@ export function DynamicForm({
                   }}
                 />
               )}
-              {field.tipo_campo === 'numero' && (
+              {field.tipo_campo === 'number' && (
                 <Input 
                   type="number" 
                   {...form.register(field.id)} 
@@ -484,6 +509,12 @@ export function DynamicForm({
                     form.register(field.id).onBlur(e);
                   }}
                 />
+              )}
+              {field.tipo_campo === 'tel' && (
+                <Input type="tel" {...form.register(field.id)} />
+              )}
+              {field.tipo_campo === 'date' && (
+                <Input type="date" {...form.register(field.id)} />
               )}
               {field.tipo_campo === 'email' && <Input type="email" {...form.register(field.id)} />}
               {field.tipo_campo === 'textarea' && <Textarea {...form.register(field.id)} />}
