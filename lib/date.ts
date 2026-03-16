@@ -11,24 +11,27 @@ export function getBogotaDate(date: string | Date | null | undefined): Date | nu
   if (!date) return null;
   
   if (typeof date === 'string') {
-    // Si ya viene con T, es un ISO completo o un datetime-local
-    if (date.includes('T')) {
-      const [d, t] = date.split('T');
-      // Si no tiene zona horaria, asumimos Bogotá
-      if (!date.includes('Z') && !date.match(/[+-]\d{2}:\d{2}$/)) {
-        return new Date(`${d}T${t.substring(0, 8)}-05:00`);
+    // Normalizar espacio por T para asegurar compatibilidad con todos los navegadores (ej: Safari)
+    const normalized = date.includes(' ') && !date.includes('T') 
+      ? date.replace(' ', 'T') 
+      : date;
+
+    if (normalized.includes('T')) {
+      const parts = normalized.split('T');
+      // Si no tiene zona horaria ni indicador Z, asumimos Bogotá (-05:00)
+      if (!normalized.includes('Z') && !normalized.match(/[+-]\d{2}:\d{2}$/)) {
+        return new Date(`${parts[0]}T${parts[1].substring(0, 8)}-05:00`);
       }
     }
-    // If it's a pure date string (YYYY-MM-DD), force it to be at midnight in Bogotá
-    if (date.length === 10 && date.includes('-')) {
-      return new Date(`${date}T00:00:00-05:00`);
-    }
-    const d = new Date(date);
+    
+    // Fallback al constructor estándar con la cadena normalizada
+    const d = new Date(normalized);
     return isNaN(d.getTime()) ? null : d;
   }
   
   return isNaN(date.getTime()) ? null : date;
 }
+
 
 /**
  * Combina una fecha y una hora (de columnas separadas) en un objeto Date de Bogotá.
@@ -238,8 +241,8 @@ export function isAvailable(apertura: string | Date | null | undefined, cierre: 
   isAfter: boolean;
 } {
   const now = getNow();
-  const dOpen = apertura ? new Date(apertura) : null;
-  const dClose = cierre ? new Date(cierre) : null;
+  const dOpen = getBogotaDate(apertura);
+  const dClose = getBogotaDate(cierre);
 
   const isBefore = dOpen ? now < dOpen : false;
   const isAfter = dClose ? now > dClose : false;
@@ -250,3 +253,4 @@ export function isAvailable(apertura: string | Date | null | undefined, cierre: 
     isAfter
   };
 }
+

@@ -90,6 +90,22 @@ export function DynamicForm({
   const isAfterClose = availability.isAfter;
   const isExpired = !availability.available;
 
+  // LOGS TEMPORALES DE DIAGNÓSTICO
+  useEffect(() => {
+    if (mounted) {
+      console.log("--- DIAGNÓSTICO DISPONIBILIDAD ---");
+      console.log("Apertura (DB):", fechaApertura);
+      console.log("Cierre (DB):", fechaCierre);
+      console.log("Ahora (System):", new Date().toISOString());
+      console.log("Apertura (Parsed):", fechaApertura ? new Date(fechaApertura).toISOString() : 'N/A');
+      console.log("Cierre (Parsed):", fechaCierre ? new Date(fechaCierre).toISOString() : 'N/A');
+      console.log("isBeforeOpen:", isBeforeOpen);
+      console.log("isAfterClose:", isAfterClose);
+      console.log("isExpired:", isExpired);
+      console.log("----------------------------------");
+    }
+  }, [mounted, isBeforeOpen, isAfterClose, isExpired, fechaApertura, fechaCierre]);
+
   // Construir validación dinámica con Zod
   const buildZodSchema = () => {
     let schemaObj: any = {};
