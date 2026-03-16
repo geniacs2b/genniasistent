@@ -16,7 +16,35 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatToBogota } from "@/lib/date";
 import { checkExistingRegistration } from "@/app/actions/validation";
-import { Loader2, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, AlertCircle, XCircle, MapPin, Building2, CreditCard } from "lucide-react";
+import { COLOMBIA_DATA } from "@/lib/colombiaData";
+
+const DOCUMENT_TYPES = [
+  "Cédula de ciudadanía",
+  "Tarjeta de identidad",
+  "Cédula de extranjería",
+  "Pasaporte",
+  "Permiso por protección temporal",
+  "NIT",
+  "Registro civil",
+  "Documento de identidad extranjero",
+  "Otro"
+];
+
+const COMPANY_TYPES = [
+  "Persona natural",
+  "Persona jurídica",
+  "SAS",
+  "LTDA",
+  "SA",
+  "Sucursal extranjera",
+  "Entidad pública",
+  "ONG / ESAL",
+  "Cooperativa",
+  "Fundación",
+  "Asociación",
+  "Otro"
+];
 
 interface DynamicFormProps {
   eventoId: string;
@@ -51,10 +79,6 @@ export function DynamicForm({
   const [canceling, setCanceling] = useState(false);
   const [validatingDoc, setValidatingDoc] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
-  const [regData, setRegData] = useState<{ doc: string; type: string; email: string } | null>(null);
-  const [showEmailFix, setShowEmailFix] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [resending, setResending] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -74,6 +98,15 @@ export function DynamicForm({
     fields.forEach((field) => {
       if (field.tipo_campo === 'checkbox' && field.obligatorio) {
         schemaObj[field.id] = z.boolean().refine((val) => val === true, { message: "Debe aceptar esta condición" });
+      } else if (field.tipo_campo === 'documento_colombia') {
+        schemaObj[`${field.id}_tipo`] = z.string().min(1, "Seleccione el tipo de documento");
+        schemaObj[`${field.id}_numero`] = z.string().min(1, "Ingrese el número de documento");
+      } else if (field.tipo_campo === 'ubicacion_colombia') {
+        schemaObj[`${field.id}_departamento`] = z.string().min(1, "Seleccione el departamento");
+        schemaObj[`${field.id}_municipio`] = z.string().min(1, "Seleccione el municipio");
+      } else if (field.tipo_campo === 'empresa_colombia') {
+        schemaObj[`${field.id}_nombre`] = field.obligatorio ? z.string().min(1, "Ingrese el nombre de la empresa") : z.any().optional();
+        schemaObj[`${field.id}_tipo`] = field.obligatorio ? z.string().min(1, "Seleccione el tipo de empresa") : z.any().optional();
       } else if (field.obligatorio) {
         if (field.tipo_campo === 'email') {
           schemaObj[field.id] = z.string().email("Correo electrónico inválido");
@@ -103,10 +136,26 @@ export function DynamicForm({
           return acc;
         }
 
-        // Si no, intentar mapear desde el objeto persona
-        const name = field.nombre_campo.toLowerCase();
         const persona = initialData?.persona || {};
 
+        if (field.tipo_campo === 'documento_colombia') {
+          acc[`${field.id}_tipo`] = persona.tipo_documento || '';
+          acc[`${field.id}_numero`] = persona.numero_documento || '';
+          return acc;
+        }
+        if (field.tipo_campo === 'ubicacion_colombia') {
+          acc[`${field.id}_departamento`] = persona.departamento || '';
+          acc[`${field.id}_municipio`] = persona.municipio || '';
+          return acc;
+        }
+        if (field.tipo_campo === 'empresa_colombia') {
+          acc[`${field.id}_nombre`] = persona.empresa || '';
+          acc[`${field.id}_tipo`] = (initialData?.respuestas?.[`${field.id}_tipo`]) || '';
+          return acc;
+        }
+
+        // Mapeo legacy por si acaso
+        const name = field.nombre_campo.toLowerCase();
         if (['tipo_documento', 'tipo_de_documento'].some(v => name.includes(v))) {
           acc[field.id] = persona.tipo_documento || '';
         } else if (['numero_documento', 'documento'].some(v => name.includes(v)) && !name.includes('tipo')) {
@@ -183,11 +232,6 @@ export function DynamicForm({
     );
   }
 
-  const handleReset = () => {
-    form.reset();
-    setDuplicateError(null);
-  };
-
   const validateDocument = async (value: string) => {
     if (!value || value.trim().length === 0) return;
     
@@ -226,48 +270,55 @@ export function DynamicForm({
       tratamiento_datos_aceptado: data.acepta_tratamiento || false
     };
 
-    // Mapeo dinámico basado en nombre_campo (buscando variaciones comunes)
     fields.forEach(f => {
-      const val = data[f.id];
-      const name = f.nombre_campo.toLowerCase();
-      
-      if (['tipo_documento', 'tipo_de_documento'].some(v => name.includes(v))) {
-        values.tipo_documento = val;
-      }
-      if (['numero_documento', 'nmero_de_documento', 'documento'].some(v => name.includes(v)) && !name.includes('tipo')) {
-        values.numero_documento = val;
-      }
-      if (['nombres', 'nombre'].some(v => name === v || name.startsWith('nombre'))) {
-        values.nombres = val;
-      }
-      if (['apellidos', 'apellido'].some(v => name === v || name.startsWith('apellido'))) {
-        values.apellidos = val;
-      }
-      if (['correo', 'email'].some(v => name.includes(v))) {
-        values.correo = val;
-      }
-      if (['telefono', 'teléfono', 'celular', 'mvil', 'movil'].some(v => name.includes(v))) {
-        values.telefono = val;
-      }
-      if (name.includes('empresa') || name.includes('organizacion')) {
-        values.empresa = val;
-      }
-      if (name.includes('cargo') || name.includes('puesto')) {
-        values.cargo = val;
-      }
-      if (name.includes('municipio') || name.includes('ciudad')) {
-        values.municipio = val;
-      }
-      if (name.includes('departamento')) {
-        values.departamento = val;
-      }
-      // Si el formulario ya trae un campo de tratamiento de datos, lo sincronizamos si está marcado
-      if (['tratamiento_datos', 'acepta_terminos', 'habeus_data', 'politica'].some(v => name.includes(v))) {
-        if (!!val) values.tratamiento_datos_aceptado = true;
+      if (f.tipo_campo === 'documento_colombia') {
+        values.tipo_documento = data[`${f.id}_tipo`];
+        values.numero_documento = data[`${f.id}_numero`];
+      } else if (f.tipo_campo === 'ubicacion_colombia') {
+        values.departamento = data[`${f.id}_departamento`];
+        values.municipio = data[`${f.id}_municipio`];
+      } else if (f.tipo_campo === 'empresa_colombia') {
+        values.empresa = data[`${f.id}_nombre`];
+      } else {
+        const val = data[f.id];
+        const name = f.nombre_campo.toLowerCase();
+        
+        if (['tipo_documento', 'tipo_de_documento'].some(v => name.includes(v))) {
+          values.tipo_documento = val;
+        }
+        if (['numero_documento', 'nmero_de_documento', 'documento'].some(v => name.includes(v)) && !name.includes('tipo')) {
+          values.numero_documento = val;
+        }
+        if (['nombres', 'nombre'].some(v => name === v || name.startsWith('nombre'))) {
+          values.nombres = val;
+        }
+        if (['apellidos', 'apellido'].some(v => name === v || name.startsWith('apellido'))) {
+          values.apellidos = val;
+        }
+        if (['correo', 'email'].some(v => name.includes(v))) {
+          values.correo = val;
+        }
+        if (['telefono', 'teléfono', 'celular', 'mvil', 'movil'].some(v => name.includes(v))) {
+          values.telefono = val;
+        }
+        if (name.includes('empresa') || name.includes('organizacion')) {
+          values.empresa = val;
+        }
+        if (name.includes('cargo') || name.includes('puesto')) {
+          values.cargo = val;
+        }
+        if (name.includes('municipio') || name.includes('ciudad')) {
+          values.municipio = val;
+        }
+        if (name.includes('departamento')) {
+          values.departamento = val;
+        }
+        if (['tratamiento_datos', 'acepta_terminos', 'habeus_data', 'politica'].some(v => name.includes(v))) {
+          if (!!val) values.tratamiento_datos_aceptado = true;
+        }
       }
     });
 
-    // Enviamos 'data' completa en respuesta_json para no perder campos dinámicos
     const payload = {
       ...values,
       p_respuesta_json: data
@@ -275,7 +326,6 @@ export function DynamicForm({
 
     let res;
     if (initialData?.persona?.id) {
-      // Modo Edición
       res = await updateRegistrationAction(
         initialData.persona.id,
         eventoId,
@@ -284,7 +334,6 @@ export function DynamicForm({
         eventoTitulo
       );
     } else {
-      // Registro Inicial
       res = await submitRegistration(formularioId, eventoId, payload, eventoTitulo);
     }
     
@@ -297,18 +346,16 @@ export function DynamicForm({
       });
       
       const finalPersonaId = res.data?.persona_id || initialData?.persona?.id || '';
-      const finalEventId = eventoId;
-
-      // Persistencia de seguridad para la pantalla de espera
+      
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('lastPersonaId', finalPersonaId);
-        sessionStorage.setItem('lastEventId', finalEventId);
+        sessionStorage.setItem('lastEventId', eventoId);
       }
 
       const params = new URLSearchParams({
         personaId: finalPersonaId,
         inscripcionId: res.data?.inscripcion_id || initialData?.inscripcion_id || '',
-        eventId: finalEventId,
+        eventId: eventoId,
         email: values.correo,
         doc: values.numero_documento,
         type: values.tipo_documento,
@@ -326,10 +373,8 @@ export function DynamicForm({
     }
   };
 
-
   return (
     <div className="w-full">
-      {/* Event Header Section */}
       <div className="mb-8 text-center sm:text-left space-y-4">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           {eventoTitulo}
@@ -369,7 +414,6 @@ export function DynamicForm({
         </div>
       </div>
 
-      {/* Form Card Container */}
       <Card className="shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-0 bg-white/95 backdrop-blur-xl overflow-hidden rounded-[1.5rem] dark:bg-slate-900/90 relative">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-secondary to-primary brightness-110"></div>
         
@@ -433,7 +477,7 @@ export function DynamicForm({
                   onValueChange={(val) => form.setValue(field.id, val)}
                   value={form.watch(field.id)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                     <SelectValue placeholder="Seleccione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -443,22 +487,148 @@ export function DynamicForm({
                   </SelectContent>
                 </Select>
               )}
+
+              {field.tipo_campo === 'documento_colombia' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div className="md:col-span-12 lg:col-span-5">
+                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Tipo</Label>
+                      <Select 
+                        onValueChange={(val) => form.setValue(`${field.id}_tipo`, val)}
+                        value={form.watch(`${field.id}_tipo`)}
+                      >
+                        <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                          <CreditCard className="w-4 h-4 mr-2 text-primary/60" />
+                          <SelectValue placeholder="Tipo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_TYPES.map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {form.formState.errors[`${field.id}_tipo`] && (
+                        <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_tipo`]?.message as string}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-12 lg:col-span-7">
+                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Número de Documento</Label>
+                      <Input 
+                        placeholder="Ingrese número"
+                        className="h-12 rounded-xl"
+                        {...form.register(`${field.id}_numero`)} 
+                        onBlur={(e) => {
+                          validateDocument(e.target.value);
+                          form.register(`${field.id}_numero`).onBlur(e);
+                        }}
+                      />
+                      {form.formState.errors[`${field.id}_numero`] && (
+                        <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_numero`]?.message as string}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {field.tipo_campo === 'ubicacion_colombia' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Departamento</Label>
+                    <Select 
+                      onValueChange={(val) => {
+                        form.setValue(`${field.id}_departamento`, val);
+                        form.setValue(`${field.id}_municipio`, '');
+                      }}
+                      value={form.watch(`${field.id}_departamento`)}
+                    >
+                      <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                        <MapPin className="w-4 h-4 mr-2 text-primary/60" />
+                        <SelectValue placeholder="Seleccione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLOMBIA_DATA.map((d) => (
+                          <SelectItem key={d.departamento} value={d.departamento}>{d.departamento}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors[`${field.id}_departamento`] && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_departamento`]?.message as string}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Municipio</Label>
+                    <Select 
+                      onValueChange={(val) => form.setValue(`${field.id}_municipio`, val)}
+                      value={form.watch(`${field.id}_municipio`)}
+                      disabled={!form.watch(`${field.id}_departamento`)}
+                    >
+                      <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                        <SelectValue placeholder="Seleccione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(COLOMBIA_DATA.find(d => d.departamento === form.watch(`${field.id}_departamento`))?.municipios || []).map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors[`${field.id}_municipio`] && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_municipio`]?.message as string}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {field.tipo_campo === 'empresa_colombia' && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-12 lg:col-span-7">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Nombre de la Empresa</Label>
+                    <Input 
+                      placeholder="Ej. Mi Empresa S.A."
+                      className="h-12 rounded-xl"
+                      {...form.register(`${field.id}_nombre`)} 
+                    />
+                    {form.formState.errors[`${field.id}_nombre`] && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_nombre`]?.message as string}</p>
+                    )}
+                  </div>
+                  <div className="md:col-span-12 lg:col-span-5">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Tipo de Empresa</Label>
+                    <Select 
+                      onValueChange={(val) => form.setValue(`${field.id}_tipo`, val)}
+                      value={form.watch(`${field.id}_tipo`)}
+                    >
+                      <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                        <Building2 className="w-4 h-4 mr-2 text-primary/60" />
+                        <SelectValue placeholder="Seleccione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMPANY_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors[`${field.id}_tipo`] && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{form.formState.errors[`${field.id}_tipo`]?.message as string}</p>
+                    )}
+                  </div>
+                </div>
+              )}
               
-              {validatingDoc && field.nombre_campo.toLowerCase().includes('documento') && (
+              {validatingDoc && (field.nombre_campo.toLowerCase().includes('documento') || field.tipo_campo === 'documento_colombia') && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Verificando disponibilidad...
                 </div>
               )}
 
-              {duplicateError && field.nombre_campo.toLowerCase().includes('documento') && (
-                <div className="flex items-center gap-2 text-sm font-medium text-destructive bg-destructive/5 p-2 rounded-md border border-destructive/20">
+              {duplicateError && (field.nombre_campo.toLowerCase().includes('documento') || field.tipo_campo === 'documento_colombia') && (
+                <div className="flex items-center gap-2 text-sm font-medium text-destructive bg-destructive/5 p-2 rounded-md border border-destructive/20 mt-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {duplicateError}
                 </div>
               )}
               
-               {form.formState.errors[field.id] && <p className="text-sm text-destructive">{form.formState.errors[field.id]?.message as string}</p>}
+              {form.formState.errors[field.id] && <p className="text-sm text-destructive">{form.formState.errors[field.id]?.message as string}</p>}
             </div>
           ))}
 

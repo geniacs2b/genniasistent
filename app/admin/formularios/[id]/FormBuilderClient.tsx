@@ -32,16 +32,17 @@ interface Campo {
 }
 
 const PRESETS = [
-  { label: "Tipo de Documento", tipo_campo: "select", obligatorio: true, opciones_json: ["CC", "TI", "CE", "PAS"] },
-  { label: "Número de Documento", tipo_campo: "text", obligatorio: true },
+  { label: "Documento (Tipo + Número)", tipo_campo: "documento_colombia", obligatorio: true },
+  { label: "Ubicación (Departamento + Municipio)", tipo_campo: "ubicacion_colombia", obligatorio: true },
+  { label: "Empresa (Nombre + Tipo)", tipo_campo: "empresa_colombia", obligatorio: false },
   { label: "Correo Electrónico", tipo_campo: "email", obligatorio: true },
   { label: "Nombres", tipo_campo: "text", obligatorio: true },
   { label: "Apellidos", tipo_campo: "text", obligatorio: true },
   { label: "Teléfono", tipo_campo: "text", obligatorio: false },
-  { label: "Empresa", tipo_campo: "text", obligatorio: false },
   { label: "Cargo", tipo_campo: "text", obligatorio: false },
   { label: "Universidad", tipo_campo: "text", obligatorio: false },
 ];
+
 
 const TIPOS = [
   { value: "text", label: "Texto" },
@@ -50,7 +51,12 @@ const TIPOS = [
   { value: "select", label: "Selección" },
   { value: "checkbox", label: "Casilla de verificación" },
   { value: "textarea", label: "Texto largo" },
+  { value: "documento_colombia", label: "Documento (CO)" },
+  { value: "ubicacion_colombia", label: "Ubicación (CO)" },
+  { value: "empresa_colombia", label: "Empresa (CO)" },
 ];
+
+
 export function FormBuilderClient({ 
   formularioId, 
   initialCampos,
@@ -420,10 +426,24 @@ export function FormBuilderClient({
                       />
                     </div>
                   )}
+                  {["documento_colombia", "ubicacion_colombia", "empresa_colombia"].includes(campo.tipo_campo) && (
+                    <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-widest">Bloque Inteligente Activado</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-medium leading-relaxed">
+                        {campo.tipo_campo === "documento_colombia" && "Este bloque renderizará automáticamente un selector de tipo y un campo de número, vinculados a los datos básicos de la persona."}
+                        {campo.tipo_campo === "ubicacion_colombia" && "Este bloque renderizará selectores de Departamento y Municipio usando el catálogo oficial de Colombia."}
+                        {campo.tipo_campo === "empresa_colombia" && "Este bloque incluye campos para el nombre de la empresa y su tipo legal."}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </div>
             </Card>
           ))}
+
 
           {campos.length === 0 && (
             <div className="flex flex-col items-center justify-center py-28 px-6 text-center border-2 border-dashed rounded-[2rem] border-slate-300/60 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
