@@ -46,6 +46,18 @@ const COMPANY_TYPES = [
   "Otro"
 ];
 
+const DOCUMENT_TYPE_MAP: Record<string, string> = {
+  "Cédula de ciudadanía": "CC",
+  "Tarjeta de identidad": "TI",
+  "Cédula de extranjería": "CE",
+  "Pasaporte": "PAS",
+  "Permiso por protección temporal": "PPT",
+  "NIT": "NIT",
+  "Registro civil": "RC",
+  "Documento de identidad extranjero": "DIE",
+  "Otro": "OTRO"
+};
+
 interface DynamicFormProps {
   eventoId: string;
   formularioId: string;
@@ -313,8 +325,9 @@ export function DynamicForm({
 
     normalizedFields.forEach(f => {
       if (f.tipo_campo === 'documento_colombia') {
-        values.tipo_documento = data[`${f.id}_tipo`];
-        values.numero_documento = data[`${f.id}_numero`];
+        const rawTipo = data[`${f.id}_tipo`];
+        values.tipo_documento = DOCUMENT_TYPE_MAP[rawTipo] || rawTipo;
+        values.numero_documento = (data[`${f.id}_numero`] || '').toString().trim().replace(/\s+/g, '');
       } else if (f.tipo_campo === 'ubicacion_colombia') {
         values.departamento = data[`${f.id}_departamento`];
         values.municipio = data[`${f.id}_municipio`];
@@ -325,10 +338,10 @@ export function DynamicForm({
         const name = f.nombre_campo.toLowerCase();
         
         if (['tipo_documento', 'tipo_de_documento'].some(v => name.includes(v))) {
-          values.tipo_documento = val;
+          values.tipo_documento = DOCUMENT_TYPE_MAP[val] || val;
         }
         if (['numero_documento', 'nmero_de_documento', 'documento'].some(v => name.includes(v)) && !name.includes('tipo')) {
-          values.numero_documento = val;
+          values.numero_documento = (val || '').toString().trim().replace(/\s+/g, '');
         }
         if (['nombres', 'nombre'].some(v => name === v || name.startsWith('nombre'))) {
           values.nombres = val;
@@ -340,7 +353,8 @@ export function DynamicForm({
           values.correo = val;
         }
         if (['telefono', 'teléfono', 'celular', 'mvil', 'movil'].some(v => name.includes(v))) {
-          values.telefono = val;
+          // Sanitizar teléfono: solo números y máximo 10 caracteres
+          values.telefono = (val || '').toString().replace(/\D/g, '').slice(-10);
         }
         if (name.includes('empresa') || name.includes('organizacion')) {
           values.empresa = val;
