@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatToBogota } from "@/lib/date";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Award, Send, RotateCcw, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 const estadoBadge: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   pendiente_verificacion: "destructive",
@@ -23,6 +25,8 @@ interface InscritosClientProps {
 
 export function InscritosClient({ initialInscripciones }: InscritosClientProps) {
   const [selectedEvento, setSelectedEvento] = useState("all");
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Extraer eventos únicos para el filtro
   const eventos = Array.from(
@@ -33,6 +37,28 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
     if (selectedEvento === "all") return true;
     return insc.eventos?.titulo === selectedEvento;
   });
+
+  const handleManualSend = async (insc: any) => {
+    setSendingId(insc.id);
+    try {
+      const { automationService } = await import("@/services/automationService");
+      const result = await automationService.triggerIndividualCertificate(
+        insc.evento_id, 
+        insc.persona_id,
+        insc.ultimoEnvio?.estado_envio === 'error' ? 'reintento' : 'manual'
+      );
+
+      if (result.ok) {
+        toast({ title: "Envío iniciado", description: result.message });
+      } else {
+        toast({ title: "Error", description: result.message, variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error de conexión", description: error.message, variant: "destructive" });
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -69,9 +95,9 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
               <TableHead className="font-bold text-slate-600 dark:text-slate-300 h-14 pl-6">Nombre / Doc.</TableHead>
               <TableHead className="font-bold text-slate-600 dark:text-slate-300">Correo</TableHead>
               <TableHead className="font-bold text-slate-600 dark:text-slate-300">Evento</TableHead>
-              <TableHead className="font-bold text-slate-600 dark:text-slate-300">Registro</TableHead>
-              <TableHead className="font-bold text-slate-600 dark:text-slate-300">Correo Verif.</TableHead>
-              <TableHead className="font-bold text-slate-600 dark:text-slate-300 pr-6">Estado</TableHead>
+              <TableHead className="font-bold text-slate-600 dark:text-slate-300">Sesiones</TableHead>
+              <TableHead className="font-bold text-slate-600 dark:text-slate-300">Certificado</TableHead>
+              <TableHead className="font-bold text-slate-600 dark:text-slate-300 pr-6">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,18 +115,82 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
                       {evento?.titulo}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm font-medium text-slate-500">
-                    {formatToBogota(insc.created_at, { day: '2-digit', month: 'short', year: 'numeric' })}
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        {insc.sesionesAsistidas} / {evento?.min_sesiones_certificado || 0}
+                      </div>
+                      <div className="w-16 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all ${insc.sesionesAsistidas >= (evento?.min_sesiones_certificado || 0) ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                          style={{ width: `${Math.min(100, (insc.sesionesAsistidas / (evento?.min_sesiones_certificado || 1)) * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={persona?.correo_verificado ? "default" : "destructive"} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${persona?.correo_verificado ? "bg-emerald-100 text-emerald-700 border-0" : "bg-rose-100 text-rose-700 border-0"}`}>
-                      {persona?.correo_verificado ? "V E R I F I C A D O" : "P E N D I E N T E"}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      {/* Cumplimiento Sessions */}
+                      {insc.sesionesAsistidas >= (evento?.min_sesiones_certificado || 0) ? (
+                        <Badge variant="outline" className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-100 flex items-center gap-1 w-fit">
+                          <CheckCircle2 className="w-3 h-3" /> CUMPLE REQUISITO
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 text-slate-500 border-slate-100 flex items-center gap-1 w-fit">
+                          <AlertCircle className="w-3 h-3" /> NO CUMPLE
+                        </Badge>
+                      )}
+                      
+                      {/* Manual Habilitation */}
+                      {insc.habilitadoManual && (
+                        <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 w-fit">
+                          <Award className="w-3 h-3" /> HABILITADO MANUAL
+                        </Badge>
+                      )}
+
+                      {/* Send Status */}
+                      {insc.ultimoEnvio && (
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[9px] font-bold border-0 flex items-center gap-1 w-fit px-2 py-0.5 rounded-md ${
+                            insc.ultimoEnvio.estado_envio === 'enviado' ? 'bg-emerald-600 text-white' : 
+                            insc.ultimoEnvio.estado_envio === 'error' ? 'bg-rose-600 text-white' : 
+                            'bg-slate-500 text-white'
+                          }`}
+                        >
+                          {insc.ultimoEnvio.estado_envio === 'enviado' ? <CheckCircle2 className="w-3 h-3" /> : 
+                           insc.ultimoEnvio.estado_envio === 'error' ? <XCircle className="w-3 h-3" /> : null}
+                          {insc.ultimoEnvio.estado_envio?.toUpperCase()}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="pr-6">
-                    <Badge variant={estadoBadge[insc.estado] ?? "secondary"} className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize">
-                      {insc.estado?.replace(/_/g, " ")}
-                    </Badge>
+                    {insc.ultimoEnvio?.estado_envio !== 'enviado' && (
+                      <Button
+                        size="sm"
+                        variant={insc.ultimoEnvio?.estado_envio === 'error' ? "outline" : "secondary"}
+                        className={`h-8 gap-2 text-[10px] font-bold uppercase transition-all active:scale-95 ${
+                          insc.ultimoEnvio?.estado_envio === 'error' ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                        onClick={() => handleManualSend(insc)}
+                        disabled={sendingId === insc.id}
+                      >
+                        {sendingId === insc.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : insc.ultimoEnvio?.estado_envio === 'error' ? (
+                          <RotateCcw className="w-3 h-3" />
+                        ) : (
+                          <Send className="w-3 h-3" />
+                        )}
+                        {sendingId === insc.id ? "..." : (insc.ultimoEnvio?.estado_envio === 'error' ? "Reintentar" : "Enviar")}
+                      </Button>
+                    )}
+                    {insc.ultimoEnvio?.estado_envio === 'enviado' && (
+                      <div className="flex justify-start">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               );
