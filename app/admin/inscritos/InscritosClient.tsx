@@ -107,7 +107,14 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
               return (
                 <TableRow key={insc.id} className="border-b border-slate-100/50 dark:border-slate-800/50 hover:bg-primary/5 transition-colors">
                   <TableCell className="py-4 pl-6">
-                    <div className="font-bold text-slate-800 dark:text-slate-100">{persona?.tipo_documento} {persona?.numero_documento}</div>
+                    <div className="flex flex-col">
+                      <div className="font-bold text-slate-800 dark:text-slate-100 italic">
+                        {persona?.nombre_completo || `${persona?.nombres || ''} ${persona?.apellidos || ''}`.trim() || 'Sin nombre'}
+                      </div>
+                      <div className="text-xs text-slate-500 font-medium mt-0.5">
+                        {persona?.tipo_documento} {persona?.numero_documento}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">{persona?.correo}</TableCell>
                   <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">

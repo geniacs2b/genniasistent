@@ -21,8 +21,9 @@ export default async function InscritosPage() {
       persona_id,
       personas (
         id,
-        nombre,
-        apellido,
+        nombres,
+        apellidos,
+        nombre_completo,
         tipo_documento,
         numero_documento,
         correo,
