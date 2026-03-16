@@ -4,6 +4,9 @@ import { DynamicForm } from "@/components/DynamicForm";
 import { notFound } from "next/navigation";
 import { getRegistrationDataAction } from "@/app/actions/registration";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function InscripcionPage({ 
   params, 
   searchParams 
@@ -14,6 +17,14 @@ export default async function InscripcionPage({
   try {
     // 1. Obtener Evento basándose en el slug del formulario
     const { evento, formularioId, fecha_apertura, fecha_cierre } = await eventService.getEventByFormSlug(params.evento);
+    
+    console.log("--- [InscripcionPage] DIAGNÓSTICO CARGA ---");
+    console.log("Slug params.evento:", params.evento);
+    console.log("ID Formulario:", formularioId);
+    console.log("ID Evento:", evento?.id);
+    console.log("Fecha Apertura (Final):", fecha_apertura);
+    console.log("Fecha Cierre (Final):", fecha_cierre);
+    console.log("-------------------------------------------");
     
     if (!evento || !evento.activo) {
       return notFound();

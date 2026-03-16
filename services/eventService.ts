@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabaseServer';
 import { Database } from '@/types/database.types';
+import { getBogotaDateTime } from '@/lib/date';
 
 type Evento = Database['public']['Tables']['eventos']['Row'];
 
@@ -63,11 +64,22 @@ export const eventService = {
     // 2. Obtener el evento por id
     const evento = await this.getEventById(form.evento_id);
 
+    // 3. Construir disponibilidad (Prioridad campos formulario, fallback campos evento)
+    const aperturaCalc = form.fecha_apertura || getBogotaDateTime(evento.fecha_inicio, evento.hora_inicio)?.toISOString();
+    const cierreCalc = form.fecha_cierre || getBogotaDateTime(evento.fecha_fin, evento.hora_fin)?.toISOString();
+
+    console.log("--- DIAGNÓSTICO EVENT SERVICE ---");
+    console.log("Slug:", slug);
+    console.log("Evento Bruto:", JSON.stringify(evento));
+    console.log("Apertura Construida:", aperturaCalc);
+    console.log("Cierre Construido:", cierreCalc);
+    console.log("---------------------------------");
+
     return {
       evento,
       formularioId: form.id,
-      fecha_apertura: form.fecha_apertura,
-      fecha_cierre: form.fecha_cierre
+      fecha_apertura: aperturaCalc || null,
+      fecha_cierre: cierreCalc || null
     };
   },
 
