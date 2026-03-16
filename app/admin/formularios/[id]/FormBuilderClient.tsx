@@ -70,13 +70,22 @@ export function FormBuilderClient({
   initialFechaCierre?: string | null;
   eventoFechaInicio?: string | null;
 }) {
-  const [campos, setCampos] = useState<Campo[]>(
-    initialCampos.map((c) => ({
+  const hydrateCampos = (camposRaw: any[]) => camposRaw.map((c) => {
+    let tipoUI = c.tipo_campo;
+    if (tipoUI === 'documento') tipoUI = 'documento_colombia';
+    if (tipoUI === 'ubicacion') tipoUI = 'ubicacion_colombia';
+    if (tipoUI === 'empresa') tipoUI = 'empresa_colombia';
+
+    return {
       ...c,
+      tipo_campo: tipoUI,
       opciones_json: c.opciones_json || c.opciones || null,
       isNew: false 
-    }))
-  );
+    };
+  });
+
+  const [campos, setCampos] = useState<Campo[]>(hydrateCampos(initialCampos));
+
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [fechaAperturaDate, setFechaAperturaDate] = useState<Date | undefined>(
     getBogotaDate(initialFechaApertura) || undefined
@@ -97,14 +106,11 @@ export function FormBuilderClient({
 
   // Sincronizar estado local cuando las props cambien (ej: tras router.refresh())
   useEffect(() => {
-    setCampos(initialCampos.map((c) => ({
-      ...c,
-      opciones_json: c.opciones_json || c.opciones || null,
-      isNew: false 
-    })));
+    setCampos(hydrateCampos(initialCampos));
     setFechaAperturaDate(getBogotaDate(initialFechaApertura) || undefined);
     setFechaCierreDate(getBogotaDate(initialFechaCierre) || undefined);
   }, [initialCampos, initialFechaApertura, initialFechaCierre]);
+
 
   const addCampo = (preset?: any) => {
     setCampos([
@@ -166,29 +172,41 @@ export function FormBuilderClient({
 
       // 2.c Actualizar campos existentes individualmente o por lote si se prefiere (lote es más complejo con ids)
       // Usaremos un mapeo limpio de columnas
-      const mapFieldRow = (c: Campo, i: number) => ({
-        formulario_id: formularioId,
-        nombre_campo: (c.label || `campo_${i}`).toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
-        label: c.label || "Campo sin nombre",
-        tipo_campo: c.tipo_campo,
-        obligatorio: c.obligatorio,
-        placeholder: c.placeholder || null,
-        ayuda: c.ayuda || null,
-        orden: i,
-        activo: c.activo ?? true,
-        es_base: c.es_base ?? false,
-        validacion_json: c.validacion_json || null,
-        opciones_json: (c.tipo_campo === "select" || c.tipo_campo === "checkbox") ? c.opciones_json : null,
-        ancho_visual: c.ancho_visual ?? 12
-      });
+      const mapFieldRow = (c: Campo, i: number) => {
+        // Normalización para la base de datos (evitar violación de constraint)
+        let tipoParaDB = c.tipo_campo;
+        if (tipoParaDB === 'documento_colombia') tipoParaDB = 'documento';
+        if (tipoParaDB === 'ubicacion_colombia') tipoParaDB = 'ubicacion';
+        if (tipoParaDB === 'empresa_colombia') tipoParaDB = 'empresa';
+
+        return {
+          formulario_id: formularioId,
+          nombre_campo: (c.label || `campo_${i}`).toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+          label: c.label || "Campo sin nombre",
+          tipo_campo: tipoParaDB,
+          obligatorio: c.obligatorio,
+          placeholder: c.placeholder || null,
+          ayuda: c.ayuda || null,
+          orden: i,
+          activo: c.activo ?? true,
+          es_base: c.es_base ?? false,
+          validacion_json: c.validacion_json || null,
+          opciones_json: (c.tipo_campo === "select" || c.tipo_campo === "checkbox") ? c.opciones_json : null,
+          ancho_visual: c.ancho_visual ?? 12
+        };
+      };
 
       // Actualizar existentes
       for (const campo of registrosIdExistentes) {
         const { id, isNew, ...rest } = campo;
         const rowIndex = campos.findIndex(c => c.id === id);
+        const payload = mapFieldRow(campo, rowIndex);
+        
+        console.log("DEBUG: Guardando campo existente", payload);
+        
         const { error: updateError } = await supabase
           .from("formulario_campos")
-          .update(mapFieldRow(campo, rowIndex))
+          .update(payload)
           .eq("id", id);
         if (updateError) throw updateError;
       }
@@ -199,6 +217,9 @@ export function FormBuilderClient({
           const rowIndex = campos.findIndex(f => f.id === c.id);
           return mapFieldRow(c, rowIndex);
         });
+        
+        console.log("DEBUG: Insertando nuevos campos", newRows);
+
         const { error: insertError } = await supabase
           .from("formulario_campos")
           .insert(newRows);
