@@ -22,6 +22,15 @@ export default async function EditarEventoPage({ params }: { params: { id: strin
     .eq("activo", true)
     .order("nombre");
 
+  const { data: plantillas } = await supabase
+    .from("plantillas_correo")
+    .select("id, nombre_plantilla")
+    .eq("activo", true)
+    .order("nombre_plantilla");
+
+  // Inyectar plantillas en el objeto tiposEvento como data extra para el formulario
+  const enrichedTiposEvento = tiposEvento ? Object.assign(tiposEvento, { plantillas_correo: plantillas }) : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-xl border shadow-sm">
@@ -43,7 +52,7 @@ export default async function EditarEventoPage({ params }: { params: { id: strin
           hasTemplate={!!evento.plantilla_certificado_id} 
         />
       </div>
-      <EventoForm evento={evento} isEdit tiposEvento={tiposEvento || []} />
+      <EventoForm evento={evento} isEdit tiposEvento={enrichedTiposEvento as any} />
     </div>
   );
 }

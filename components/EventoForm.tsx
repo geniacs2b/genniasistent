@@ -13,7 +13,7 @@ import { createEvento, updateEvento } from "@/app/actions/eventos";
 import { toBogotaISO, getBogotaDate, getBogotaDateTime } from "@/lib/date";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { createClient as createBrowserClient } from "@/lib/supabaseClient";
-import { Image as ImageIcon, Upload, X, Eye, EyeOff } from "lucide-react";
+import { Image as ImageIcon, Upload, X, Eye, EyeOff, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface EventoFormProps {
@@ -327,7 +327,60 @@ export function EventoForm({ evento, isEdit = false, tiposEvento = [] }: EventoF
             </Card>
           </div>
 
-          {/* SECCIÓN 5: Estado (Solo Edición) */}
+          {/* SECCIÓN 5: Configuración de Correo del Evento */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+              <span className="text-xl">📧</span>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Comunicación por Correo</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 bg-slate-50/50 dark:bg-slate-900/20 p-6 rounded-[2rem] border border-slate-200/60 dark:border-slate-800">
+              <div className="space-y-3">
+                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Plantilla de Correo Base</Label>
+                <Select name="plantilla_correo_id" defaultValue={evento?.plantilla_correo_id || ""}>
+                  <SelectTrigger className="h-12 bg-white dark:bg-slate-900 rounded-xl border-slate-200">
+                    <SelectValue placeholder="Seleccione una plantilla" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(tiposEvento as any)?.plantillas_correo?.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nombre_plantilla}</SelectItem>
+                    ))}
+                    {!(tiposEvento as any)?.plantillas_correo?.length && (
+                      <SelectItem value="none" disabled>No hay plantillas creadas</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-slate-500 font-medium italic">Define el diseño y mensaje base para los correos de este evento.</p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Asunto Personalizado (Override)</Label>
+                <Input 
+                  name="asunto_correo" 
+                  defaultValue={evento?.asunto_correo} 
+                  placeholder="Dejar vacío para usar el asunto de la plantilla" 
+                  className="h-12 bg-white dark:bg-slate-900 rounded-xl border-slate-200"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Mensaje Personalizado (Override)</Label>
+                <Textarea 
+                  name="mensaje_correo_html" 
+                  defaultValue={evento?.mensaje_correo_html} 
+                  rows={6}
+                  placeholder="Dejar vacío para usar el mensaje de la plantilla. Puedes usar HTML básico." 
+                  className="bg-white dark:bg-slate-900 rounded-xl border-slate-200 resize-none p-4"
+                />
+                <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg flex items-center gap-2">
+                  <Info className="w-3 h-3" />
+                  Si escribes algo aquí, el mensaje de la plantilla será ignorado por completo.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN 6: Estado (Solo Edición) */}
           {isEdit && (
             <div className="space-y-6 pt-2">
                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">

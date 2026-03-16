@@ -28,6 +28,9 @@ export async function createEvento(formData: FormData) {
     imagen_formulario_path: formData.get("imagen_formulario_path") as string || null,
     imagen_formulario_alt: formData.get("imagen_formulario_alt") as string || null,
     mostrar_imagen_formulario: formData.get("mostrar_imagen_formulario") === "true",
+    plantilla_correo_id: formData.get("plantilla_correo_id") as string || null,
+    asunto_correo: formData.get("asunto_correo") as string || null,
+    mensaje_correo_html: formData.get("mensaje_correo_html") as string || null,
   }).select().single();
 
   if (error) throw new Error(error.message);
@@ -68,6 +71,9 @@ export async function updateEvento(id: string, formData: FormData) {
     imagen_formulario_path: formData.get("imagen_formulario_path") as string || null,
     imagen_formulario_alt: formData.get("imagen_formulario_alt") as string || null,
     mostrar_imagen_formulario: formData.get("mostrar_imagen_formulario") === "true",
+    plantilla_correo_id: formData.get("plantilla_correo_id") as string || null,
+    asunto_correo: formData.get("asunto_correo") as string || null,
+    mensaje_correo_html: formData.get("mensaje_correo_html") as string || null,
   }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/eventos");

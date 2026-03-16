@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Calendar, FileText, Users, Clock, QrCode, FileImage, Award, LogOut } from "lucide-react";
+import { LayoutDashboard, Calendar, FileText, Users, Clock, QrCode, FileImage, Award, LogOut, Settings, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabaseClient";
 
 const sidebarLinks = [
@@ -12,8 +12,8 @@ const sidebarLinks = [
   { name: "Inscritos", href: "/admin/inscritos", icon: Users },
   { name: "Sesiones", href: "/admin/sesiones", icon: Clock },
   { name: "Generar QR", href: "/admin/qr", icon: QrCode },
-  { name: "Plantillas Cert.", href: "/admin/plantillas", icon: FileImage },
-  { name: "Certificados", href: "/admin/certificados", icon: Award },
+  { name: "Diseño PDF", href: "/admin/plantillas", icon: FileImage },
+  { name: "Gestión de Correos", href: "/admin/correos", icon: Mail },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

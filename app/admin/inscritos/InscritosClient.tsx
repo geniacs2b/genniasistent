@@ -144,68 +144,84 @@ export function InscritosClient({ initialInscripciones }: InscritosClientProps) 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {/* Cumplimiento Sessions */}
-                      {insc.sesionesAsistidas >= (evento?.min_sesiones_certificado || 0) ? (
-                        <Badge variant="outline" className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-100 flex items-center gap-1 w-fit">
-                          <CheckCircle2 className="w-3 h-3" /> CUMPLE REQUISITO
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 text-slate-500 border-slate-100 flex items-center gap-1 w-fit">
-                          <AlertCircle className="w-3 h-3" /> NO CUMPLE
-                        </Badge>
-                      )}
-                      
-                      {/* Manual Habilitation */}
-                      {insc.habilitadoManual && (
-                        <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 w-fit">
-                          <Award className="w-3 h-3" /> HABILITADO MANUAL
-                        </Badge>
-                      )}
+                    <div className="flex flex-col gap-1.5">
+                      {/* Envio de Certificado */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase w-16">PDF:</span>
+                        {insc.ultimoEnvioCertificado ? (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[9px] font-bold border-0 flex items-center gap-1 w-fit px-2 py-0.5 rounded-md ${
+                              insc.ultimoEnvioCertificado.estado_envio === 'enviado' ? 'bg-emerald-600 text-white' : 
+                              insc.ultimoEnvioCertificado.estado_envio === 'error' ? 'bg-rose-600 text-white' : 
+                              'bg-slate-500 text-white'
+                            }`}
+                          >
+                            {insc.ultimoEnvioCertificado.estado_envio === 'enviado' ? <CheckCircle2 className="w-3 h-3" /> : 
+                             insc.ultimoEnvioCertificado.estado_envio === 'error' ? <XCircle className="w-3 h-3" /> : null}
+                            {insc.ultimoEnvioCertificado.estado_envio?.toUpperCase()}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 text-slate-400 border-slate-100 flex items-center gap-1 w-fit">
+                             PENDIENTE
+                          </Badge>
+                        )}
+                      </div>
 
-                      {/* Send Status */}
-                      {insc.ultimoEnvio && (
-                        <Badge 
-                          variant="outline" 
-                          className={`text-[9px] font-bold border-0 flex items-center gap-1 w-fit px-2 py-0.5 rounded-md ${
-                            insc.ultimoEnvio.estado_envio === 'enviado' ? 'bg-emerald-600 text-white' : 
-                            insc.ultimoEnvio.estado_envio === 'error' ? 'bg-rose-600 text-white' : 
-                            'bg-slate-500 text-white'
-                          }`}
-                        >
-                          {insc.ultimoEnvio.estado_envio === 'enviado' ? <CheckCircle2 className="w-3 h-3" /> : 
-                           insc.ultimoEnvio.estado_envio === 'error' ? <XCircle className="w-3 h-3" /> : null}
-                          {insc.ultimoEnvio.estado_envio?.toUpperCase()}
-                        </Badge>
-                      )}
+                      {/* Correo Institucional */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase w-16">Email:</span>
+                        {insc.ultimoEnvioCorreo ? (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[9px] font-bold border-0 flex items-center gap-1 w-fit px-2 py-0.5 rounded-md ${
+                              insc.ultimoEnvioCorreo.estado === 'enviado' ? 'bg-blue-600 text-white' : 
+                              insc.ultimoEnvioCorreo.estado === 'error' ? 'bg-rose-600 text-white' : 
+                              'bg-amber-500 text-white'
+                            }`}
+                          >
+                            {insc.ultimoEnvioCorreo.estado === 'enviado' ? <CheckCircle2 className="w-3 h-3" /> : 
+                             insc.ultimoEnvioCorreo.estado === 'error' ? <XCircle className="w-3 h-3" /> : null}
+                            {insc.ultimoEnvioCorreo.estado?.toUpperCase()}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 text-slate-400 border-slate-100 flex items-center gap-1 w-fit">
+                             NO ENVIADO
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="pr-6">
-                    {insc.ultimoEnvio?.estado_envio !== 'enviado' && (
+                    <div className="flex flex-col gap-2">
                       <Button
                         size="sm"
-                        variant={insc.ultimoEnvio?.estado_envio === 'error' ? "outline" : "secondary"}
+                        variant={insc.ultimoEnvioCertificado?.estado_envio === 'error' ? "outline" : "secondary"}
                         className={`h-8 gap-2 text-[10px] font-bold uppercase transition-all active:scale-95 ${
-                          insc.ultimoEnvio?.estado_envio === 'error' ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          insc.ultimoEnvioCertificado?.estado_envio === 'error' ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 
+                          insc.ultimoEnvioCertificado?.estado_envio === 'enviado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' :
+                          'bg-primary text-white hover:bg-primary/90'
                         }`}
                         onClick={() => handleManualSend(insc)}
                         disabled={sendingId === insc.id}
                       >
                         {sendingId === insc.id ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : insc.ultimoEnvio?.estado_envio === 'error' ? (
+                        ) : insc.ultimoEnvioCertificado?.estado_envio === 'enviado' ? (
                           <RotateCcw className="w-3 h-3" />
                         ) : (
                           <Send className="w-3 h-3" />
                         )}
-                        {sendingId === insc.id ? "..." : (insc.ultimoEnvio?.estado_envio === 'error' ? "Reintentar" : "Enviar")}
+                        {sendingId === insc.id ? "..." : (insc.ultimoEnvioCertificado?.estado_envio === 'enviado' ? "Reenviar" : "Enviar")}
                       </Button>
-                    )}
-                    {insc.ultimoEnvio?.estado_envio === 'enviado' && (
-                      <div className="flex justify-start">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                      </div>
-                    )}
+                      
+                      {insc.ultimoEnvioCertificado?.estado_envio === 'error' && (
+                        <p className="text-[9px] text-rose-500 font-bold max-w-[120px] leading-tight flex items-center gap-1">
+                          <AlertCircle className="w-2.5 h-2.5" />
+                          {insc.ultimoEnvioCertificado.error_mensaje || 'Error en envío'}
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );

@@ -42,13 +42,19 @@ export default async function InscritosPage() {
     .from("habilitaciones_certificado")
     .select("evento_id, persona_id");
 
-  // 3. Obtener últimos envíos de certificados
-  const { data: envios } = await supabase
+  // 3. Obtener últimos envíos de certificados (específicos)
+  const { data: enviosCertificados } = await supabase
     .from("envios_certificados")
     .select("evento_id, persona_id, estado_envio, created_at")
     .order("created_at", { ascending: false });
 
-  // 4. Obtener asistencias para calcular sesiones por evento
+  // 4. Obtener últimos envíos de correo institucional (general)
+  const { data: enviosCorreo } = await supabase
+    .from("envios_correo")
+    .select("evento_id, persona_id, estado, error_mensaje, enviado_at")
+    .order("enviado_at", { ascending: false });
+
+  // 5. Obtener asistencias para calcular sesiones por evento
   const { data: asistencias } = await supabase
     .from("asistencias")
     .select(`
@@ -73,8 +79,13 @@ export default async function InscritosPage() {
       hab.evento_id === eventoId && hab.persona_id === personaId
     ) || false;
 
-    // Obtener último envío
-    const ultimoEnvio = envios?.find(env => 
+    // Obtener último envío de certificado (específico)
+    const ultimoEnvioCertificado = enviosCertificados?.find((env: any) => 
+      env.evento_id === eventoId && env.persona_id === personaId
+    ) || null;
+
+    // Obtener último envío de correo (general)
+    const ultimoEnvioCorreo = enviosCorreo?.find((env: any) => 
       env.evento_id === eventoId && env.persona_id === personaId
     ) || null;
 
@@ -82,7 +93,8 @@ export default async function InscritosPage() {
       ...insc,
       sesionesAsistidas,
       habilitadoManual,
-      ultimoEnvio
+      ultimoEnvioCertificado,
+      ultimoEnvioCorreo
     };
   }) || [];
 
