@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { registerWithTenantAction } from "@/app/actions/registroActions";
 import { createClient } from "@/lib/supabaseClient";
+import { signInWithGoogle } from "@/lib/authHelper";
 
 // ─── Opciones ────────────────────────────────────────────────────
 const TIPOS_ORG = [
@@ -191,13 +192,11 @@ export default function RegistroPage() {
   };
 
   const handleGoogleLogin = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message || "Error al conectar con Google");
+    }
   }
 
   if (emailSent) return <EmailSentScreen email={sentEmail} />;

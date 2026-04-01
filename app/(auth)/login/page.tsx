@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseClient";
+import { signInWithGoogle } from "@/lib/authHelper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,15 +49,10 @@ export default function AdminLoginPage() {
   }
   
   const handleGoogleLogin = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    
-    if (error) {
+    try {
+      setLoading(true);
+      await signInWithGoogle();
+    } catch (error: any) {
       setLoading(false);
       toast({
         title: "Error de Google Auth",
