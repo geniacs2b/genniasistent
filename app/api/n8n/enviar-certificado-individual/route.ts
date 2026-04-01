@@ -12,19 +12,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Validar que el evento existe y tiene plantilla
     const supabase = createClient();
+
+    // 1. Validar que el evento existe y tiene plantilla
     const { data: evento, error: dbError } = await supabase
       .from('eventos')
-      .select('id, plantilla_certificado_id')
+      .select('id, plantilla_certificado_id, tenant_id, tenants(use_native_engine)')
       .eq('id', evento_id)
       .single();
 
     if (dbError || !evento) {
-      return NextResponse.json(
-        { ok: false, message: 'Evento no encontrado' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, message: 'Evento no encontrado' }, { status: 404 });
     }
 
     if (!evento.plantilla_certificado_id) {
@@ -34,42 +32,73 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Definir URL de n8n para envío individual
-    // Usamos la URL proporcionada por el usuario
-    const n8nWebhookUrl = "https://genia-cs2b.app.n8n.cloud/webhook/96aba212-1ed0-419d-ad70-97fadc68dd09";
+    const tenantId       = evento.tenant_id;
+    const useNativeEngine = (evento as any)?.tenants?.use_native_engine;
 
-    // 3. Enviar a n8n
+    // 2. Motor nativo: encolar como batch de 1 participante
+    if (useNativeEngine && tenantId) {
+      const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+      if (!publicBaseUrl) throw new Error('PUBLIC_BASE_URL no configurada');
+
+      const batchResponse = await fetch(`${publicBaseUrl}/api/jobs/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evento_id,
+          tenant_id:        tenantId,
+          participantes_ids: [persona_id],
+        }),
+      });
+
+      if (!batchResponse.ok) {
+        const errData = await batchResponse.json().catch(() => ({}));
+        return NextResponse.json(
+          { ok: false, message: errData.error ?? 'Error en motor nativo de certificados' },
+          { status: batchResponse.status || 500 }
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        message: `Certificado individual encolado vía motor nativo (${origen ?? 'manual'})`,
+      });
+    }
+
+    // 3. Motor legacy n8n
+    const n8nWebhookUrl = process.env.N8N_CERTIFICADO_INDIVIDUAL_WEBHOOK_URL;
+
+    if (!n8nWebhookUrl) {
+      console.error('[enviar-certificado-individual] N8N_CERTIFICADO_INDIVIDUAL_WEBHOOK_URL no definida');
+      return NextResponse.json(
+        { ok: false, message: 'Configuración de automatización individual no disponible' },
+        { status: 500 }
+      );
+    }
+
     const n8nResponse = await fetch(n8nWebhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        evento_id, 
-        persona_id, 
-        origen: origen || 'manual',
-        forzar_habilitacion: true 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evento_id,
+        persona_id,
+        origen:               origen ?? 'manual',
+        forzar_habilitacion: true,
       }),
     });
 
     if (!n8nResponse.ok) {
       const errorText = await n8nResponse.text();
-      console.error('n8n response error:', errorText);
+      console.error('[enviar-certificado-individual] n8n error:', errorText);
       return NextResponse.json(
-        { ok: false, message: 'La automatización de n8n devolvió un error' },
+        { ok: false, message: 'La automatización n8n devolvió un error' },
         { status: n8nResponse.status }
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      message: 'Envío de certificado individual iniciado',
-    });
+    return NextResponse.json({ ok: true, message: 'Envío de certificado individual iniciado' });
+
   } catch (error: any) {
-    console.error('Error in /api/n8n/enviar-certificado-individual:', error);
-    return NextResponse.json(
-      { ok: false, message: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    console.error('[enviar-certificado-individual] Error:', error);
+    return NextResponse.json({ ok: false, message: 'Error interno del servidor' }, { status: 500 });
   }
 }

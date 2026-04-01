@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from "next/server";
+import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { createServerClient } from "@supabase/ssr";
+import { Client } from "@upstash/qstash";
+import { generatePDF } from "@/lib/pdfGenerator";
+import { buildCertificateHtml } from "@/lib/certificateRenderer";
+import { BUCKET_CERTIFICADOS, buildCertificadoPdfPath } from "@/lib/storageConstants";
+
+const qstash = new Client({
+  token: process.env.QSTASH_TOKEN || "",
+  baseUrl: process.env.QSTASH_URL,
+});
+
+/** Reutilizable: actualiza total_processed / total_errors / status en certificate_batches. */
+async function syncBatchProgress(supabase: any, batchId: string) {
+  const { data: counts } = await supabase
+    .from('certificate_jobs')
+    .select('status')
+    .eq('batch_id', batchId);
+
+  if (!counts) return;
+
+  const processed = counts.filter((j: any) => j.status === 'generated' || j.status === 'failed').length;
+  const errors    = counts.filter((j: any) => j.status === 'failed').length;
+  const isDone    = processed >= counts.length;
+
+  await supabase
+    .from('certificate_batches')
+    .update({
+      total_processed: processed,
+      total_errors:    errors,
+      ...(isDone ? { status: errors === counts.length ? 'failed' : 'completed' } : {}),
+    })
+    .eq('id', batchId);
+}
+
+async function handler(req: NextRequest) {
+  let active_job_id:    string | undefined;
+  let active_tenant_id: string | undefined;
+  let active_batch_id:  string | undefined;
+
+  try {
+    const { tenant_id, batch_id, job_id, evento_id, persona_id: participante_id } = await req.json();
+
+    active_job_id    = job_id;
+    active_tenant_id = tenant_id;
+    active_batch_id  = batch_id;
+
+    console.log(`[Worker Generador] Iniciando: Batch=${batch_id ?? 'individual'} | Job=${job_id}`);
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { get() { return ''; } } },
+    );
+
+    // 1. Marcar como "Generando"
+    await supabase.from('certificate_jobs').update({ status: 'generating' }).eq('id', job_id);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 2. Renderizar HTML con datos reales de la plantilla
+    // ────────────────────────────────────────────────────────────────────────
+    console.log(`[Worker Generador] Renderizando plantilla: persona=${participante_id} evento=${evento_id}`);
+
+    const { html, width_px, height_px, codigo_certificado } = await buildCertificateHtml({
+      job_id,
+      tenant_id,
+      evento_id,
+      persona_id: participante_id,
+    });
+
+    // Registrar el código en el job antes del upload (trazabilidad)
+    await supabase.from('certificate_jobs')
+      .update({ codigo_certificado })
+      .eq('id', job_id);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 3. Generar PDF via Puppeteer
+    // ────────────────────────────────────────────────────────────────────────
+    const pdfBuffer = await generatePDF(html, width_px, height_px);
+    console.log(`[Worker Generador] PDF generado — ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 4. Upload a Supabase Storage (bucket canónico)
+    // ────────────────────────────────────────────────────────────────────────
+    const storagePath = buildCertificadoPdfPath(tenant_id, evento_id, job_id);
+
+    console.log(`[Storage] Subiendo PDF → ${BUCKET_CERTIFICADOS}/${storagePath}`);
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_CERTIFICADOS)
+      .upload(storagePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: true,          // idempotente si el job se reintenta
+        cacheControl: '31536000', // 1 año — el PDF no cambia
+      });
+
+    if (uploadError) {
+      throw new Error(`[Storage] Error al subir PDF (${storagePath}): ${uploadError.message}`);
+    }
+
+    // Obtener URL pública — no requiere autenticación (bucket público)
+    const { data: urlData } = supabase.storage
+      .from(BUCKET_CERTIFICADOS)
+      .getPublicUrl(storagePath);
+
+    const pdfUrl = urlData?.publicUrl ?? '';
+
+    if (!pdfUrl) {
+      throw new Error(`[Storage] getPublicUrl devolvió vacío para ${storagePath} — bucket posiblemente privado o no existe.`);
+    }
+
+    console.log(`[Storage] URL pública: ${pdfUrl}`);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 5. Guardar URL y marcar job como generado
+    // ────────────────────────────────────────────────────────────────────────
+    await supabase.from('certificate_jobs').update({
+      status:     'generated',
+      pdf_url:    pdfUrl,
+      updated_at: new Date().toISOString(),
+    }).eq('id', job_id);
+
+    // Descontar cuota del tenant
+    await supabase.rpc('decrement_tenant_quota', { p_tenant_id: tenant_id, amount: 1 });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 6. Crear email delivery y encolar en QStash (Motor 2 — Envío)
+    // ────────────────────────────────────────────────────────────────────────
+    const { data: persona } = await supabase
+      .from('personas')
+      .select('correo')
+      .eq('id', participante_id)
+      .single();
+
+    if (!persona?.correo) {
+      console.warn(`[Worker Generador] ⚠️ Persona ${participante_id} no tiene correo — PDF generado sin entrega de email.`);
+    } else {
+      const { data: delivery, error: delError } = await supabase
+        .from('email_deliveries')
+        .insert({
+          tenant_id,
+          certificate_job_id: job_id,
+          email_to:           persona.correo,
+          status:             'pending',
+        })
+        .select()
+        .single();
+
+      if (delError) {
+        console.error('[Worker Generador] Error creando email_delivery:', delError.message);
+      } else if (delivery) {
+        const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+        if (!publicBaseUrl || !publicBaseUrl.startsWith('https://') || publicBaseUrl.includes('localhost')) {
+          throw new Error('[Worker Generador] PUBLIC_BASE_URL inválida para producción — no se puede encolar email.');
+        }
+
+        await qstash.publishJSON({
+          url:     `${publicBaseUrl}/api/workers/deliver-email`,
+          body:    { tenant_id, job_id, delivery_id: delivery.id },
+          retries: 3,
+        });
+
+        console.log(`[Worker Generador] Email encolado para ${persona.correo} | delivery=${delivery.id}`);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 7. Actualizar progreso del Batch
+    // ────────────────────────────────────────────────────────────────────────
+    if (active_batch_id) {
+      await syncBatchProgress(supabase, active_batch_id);
+    }
+
+    console.log(`[Worker Generador] ✅ Job ${job_id} completado | código: ${codigo_certificado} | PDF: ${pdfUrl}`);
+
+    return NextResponse.json({
+      success: true,
+      message: `Certificado generado y email despachado. Job=${job_id}`,
+      codigo_certificado,
+      pdf_url: pdfUrl,
+    });
+
+  } catch (error: any) {
+    console.error(`[Worker Generador] ❌ Error crítico (Job=${active_job_id ?? '?'}): ${error.message}`);
+
+    if (active_job_id) {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { get() { return ''; } } },
+      );
+
+      await supabase.from('certificate_jobs').update({
+        status:    'failed',
+        error_log: error.message,
+      }).eq('id', active_job_id);
+
+      if (active_batch_id) {
+        await syncBatchProgress(supabase, active_batch_id);
+      }
+    }
+
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export const POST = verifySignatureAppRouter(handler, {
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+  nextSigningKey:    process.env.QSTASH_NEXT_SIGNING_KEY,
+});

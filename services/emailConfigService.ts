@@ -17,7 +17,8 @@ export const emailConfigService = {
         .single();
       return directData;
     }
-    return data;
+    // Si data es un arreglo (común en RPCs que devuelven TABLE), tomar el primer elemento
+    return Array.isArray(data) ? data[0] : data;
   },
 
   /**
@@ -62,16 +63,22 @@ export const emailConfigService = {
     const { id, ...rest } = template;
     
     if (id) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('plantillas_correo')
         .update(rest)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
       if (error) throw error;
+      return data;
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('plantillas_correo')
-        .insert(rest);
+        .insert(rest)
+        .select()
+        .single();
       if (error) throw error;
+      return data;
     }
   },
 

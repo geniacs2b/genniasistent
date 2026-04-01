@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabaseClient';
+import { BUCKET_PLANTILLAS_BASE } from '@/lib/storageConstants';
 
 export const certificateTemplateService = {
   /**
-   * Sube un PNG al bucket 'certificados-base' y crea el registro en plantillas_certificado
+   * Sube un PNG al bucket de imágenes base de plantillas y crea el registro en plantillas_certificado
    */
   async uploadTemplate(file: File, nombre: string, describcion?: string) {
     const supabase = createClient();
@@ -10,14 +11,14 @@ export const certificateTemplateService = {
 
     // 1. Subir archivo a storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('certificados-base')
+      .from(BUCKET_PLANTILLAS_BASE)
       .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
-    if (uploadError) throw new Error(`Storage error: ${uploadError.message}`);
+    if (uploadError) throw new Error(`[Storage] Error subiendo imagen de plantilla: ${uploadError.message}`);
 
     // 2. Obtener URL pública
     const { data: { publicUrl } } = supabase.storage
-      .from('certificados-base')
+      .from(BUCKET_PLANTILLAS_BASE)
       .getPublicUrl(fileName);
 
     // 3. Leer dimensiones desde el cliente (no disponible server-side sin sharp)
@@ -57,19 +58,25 @@ export const certificateTemplateService = {
    */
   async saveFieldConfig(eventoId: string, campo: any) {
     const supabase = createClient();
-    
+
     const { data, error } = await supabase.rpc('guardar_campo_plantilla_evento', {
-      p_evento_id: eventoId,
-      p_tipo_campo: campo.tipo_campo,
-      p_etiqueta: campo.etiqueta,
-      p_posicion_x: campo.pos_x,
-      p_posicion_y: campo.pos_y,
-      p_ancho_caja: campo.width,
-      p_alto_caja: campo.height,
-      p_text_align: campo.text_align,
-      p_font_size: campo.font_size,
-      p_visible: campo.visible ?? true,
-      p_orden: campo.orden ?? 0
+      p_evento_id:      eventoId,
+      p_tipo_campo:     campo.tipo_campo,
+      p_etiqueta:       campo.etiqueta,
+      p_posicion_x:     campo.pos_x,
+      p_posicion_y:     campo.pos_y,
+      p_ancho_caja:     campo.width,
+      p_alto_caja:      campo.height,
+      p_text_align:     campo.text_align,
+      p_font_size:      campo.font_size      ?? 24,
+      p_visible:        campo.visible        ?? true,
+      p_orden:          campo.orden          ?? 0,
+      p_font_family:    campo.font_family    ?? 'Arial',
+      p_font_weight:    campo.font_weight    ?? 'normal',
+      p_color:          campo.color          ?? '#000000',
+      p_line_height:    campo.line_height    ?? 1.2,
+      p_letter_spacing: campo.letter_spacing ?? 0,
+      p_auto_fit:       campo.auto_fit       ?? true,
     });
 
     if (error) throw new Error(error.message);

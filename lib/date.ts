@@ -16,6 +16,10 @@ export function getBogotaDate(date: string | Date | null | undefined): Date | nu
       ? date.replace(' ', 'T') 
       : date;
 
+    if (normalized.length === 10 && normalized.includes('-')) {
+      return new Date(`${normalized}T00:00:00-05:00`);
+    }
+
     if (normalized.includes('T')) {
       const parts = normalized.split('T');
       // Si no tiene zona horaria ni indicador Z, asumimos Bogotá (-05:00)
@@ -85,6 +89,28 @@ export function formatToBogota(
   } catch (error) {
     console.error('Error formatting date to Bogota:', error);
     return '-';
+  }
+}
+
+/**
+ * Formatea un string de hora (HH:mm o HH:mm:ss) a formato 12h con AM/PM
+ */
+export function formatTimeAMPM(time: string | null | undefined): string {
+  if (!time) return '';
+  try {
+    const parts = time.split(':');
+    if (parts.length < 2) return time;
+    
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    
+    hours = hours % 12;
+    hours = hours ? hours : 12; // la hora '0' debe ser '12'
+    
+    return `${hours}:${minutes} ${ampm}`;
+  } catch (error) {
+    return time || '';
   }
 }
 

@@ -57,6 +57,8 @@ export default async function InscripcionPage({
             eventoDescripcion={evento.descripcion}
             eventoFechaInicio={evento.fecha_inicio}
             eventoHoraInicio={evento.hora_inicio}
+            eventoFechaFin={evento.fecha_fin}
+            eventoHoraFin={evento.hora_fin}
             eventoLugar={evento.lugar}
             fields={fields} 
             fechaApertura={fecha_apertura}

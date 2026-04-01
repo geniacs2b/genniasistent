@@ -12,20 +12,38 @@ import { Save, Plus, Trash2, Eye, AlignCenter, AlignHorizontalSpaceAround, Align
 import { certificateTemplateService } from "@/services/certificateTemplateService";
 
 const FIELD_TYPES = [
-  { label: "Nombre Completo", value: "nombre_completo" },
-  { label: "Número de Documento", value: "numero_documento" },
-  { label: "Evento", value: "evento" },
-  { label: "Fecha", value: "fecha" },
-  { label: "Código de Certificado", value: "codigo_certificado" },
+  { label: "Nombre Completo",              value: "nombre_completo"       },
+  { label: "Nombres",                      value: "nombres"               },
+  { label: "Apellidos",                    value: "apellidos"             },
+  { label: "Número de Documento",          value: "numero_documento"      },
+  { label: "Tipo de Documento",            value: "tipo_documento"        },
+  { label: "Nombre del Evento",            value: "nombre_evento"         },
+  { label: "Fecha de Emisión",             value: "fecha_emision"         },
+  { label: "Fecha de Inicio del Evento",   value: "fecha_inicio_evento"   },
+  { label: "Fecha de Fin del Evento",      value: "fecha_fin_evento"      },
+  { label: "Código de Certificado",        value: "codigo_certificado"    },
+  { label: "Código QR de Verificación",   value: "qr_code"               },
 ];
 
-// Textos de muestra con casos complicados (nombres largos)
+const FONT_FAMILIES = [
+  "Arial", "Georgia", "Times New Roman", "Verdana", "Courier New",
+  "Helvetica", "Palatino", "Tahoma", "Trebuchet MS",
+  "Montserrat", "Open Sans", "Lato", "Raleway",
+  "Playfair Display", "Oswald",
+];
+
 const PREVIEW_VALUES: Record<string, string> = {
-  nombre_completo: "María Alejandra",
-  numero_documento: "1.234.567.890",
-  evento: "XIV Congreso Internacional de Innovación y Tecnología Educativa",
-  fecha: "15 de marzo de 2026",
-  codigo_certificado: "CERT-2026-001234",
+  nombre_completo:     "María Alejandra",
+  nombres:             "María Alejandra",
+  apellidos:           "González Martínez",
+  numero_documento:    "1.234.567.890",
+  tipo_documento:      "CC",
+  nombre_evento:       "XIV Congreso Internacional de Innovación y Tecnología Educativa",
+  fecha_emision:       "15 de marzo de 2026",
+  fecha_inicio_evento: "13 de marzo de 2026",
+  fecha_fin_evento:    "15 de marzo de 2026",
+  codigo_certificado:  "CERT-2026-001234",
+  qr_code:             "[QR]",
 };
 const TEST_NAMES = {
   corto: "Ana Ruiz",
@@ -33,14 +51,12 @@ const TEST_NAMES = {
   largo: "María Fernanda Del Pilar Rodríguez Castañeda",
   extremo: "Juan Sebastián De Los Ríos Castellanos Montoya Fernández",
 };
-
 const TEST_DOCUMENTS = {
   corto: "12345678",
   medio: "1122334455",
   largo: "100123456789",
   extremo: "900123456789012",
 };
-
 
 interface Campo {
   id: string;
@@ -59,6 +75,7 @@ interface Campo {
   letter_spacing: number;
   auto_fit: boolean;
   visible: boolean;
+  orden?: number;
 }
 
 interface CertificateEditorProps {
@@ -70,11 +87,15 @@ interface CertificateEditorProps {
     alto_px: number;
   };
   initialFields: Campo[];
-  eventoId?: string; // Prop opcional para vincular campos al evento
+  eventoId?: string;
 }
 
 export default function CertificateEditor({ template, initialFields, eventoId }: CertificateEditorProps) {
   const [campos, setCampos] = useState<Campo[]>([]);
+  // Tracks which tipo_campo values are currently persisted in DB.
+  // Used on save to delete rows that the user removed from the editor.
+  const [dbTipoCampos, setDbTipoCampos] = useState<Set<string>>(new Set());
+
   const [selected, setSelected] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
@@ -88,8 +109,17 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
   const { toast } = useToast();
   const supabase = createClient();
 
-  // Cargar configuración existente
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+  // Prioridad: initialFields (ya cargados por el padre) → query directa a DB.
+  // En ambos casos se inicializa dbTipoCampos para saber qué existe en BD.
   useEffect(() => {
+    if (initialFields && initialFields.length > 0) {
+      const normalized = initialFields.map((d) => ({ ...d, id: d.id || `db-${Date.now()}` }));
+      setCampos(normalized);
+      setDbTipoCampos(new Set(normalized.map((d) => d.tipo_campo)));
+      return;
+    }
+
     supabase
       .from("plantilla_campos_certificado")
       .select("*")
@@ -97,13 +127,14 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
       .order("orden", { ascending: true })
       .then(({ data }) => {
         if (data && data.length > 0) {
-          setCampos(
-            data.map((d) => ({ ...d, id: d.id || `${Date.now()}` }))
-          );
+          const normalized = data.map((d) => ({ ...d, id: d.id || `db-${Date.now()}` }));
+          setCampos(normalized);
+          setDbTipoCampos(new Set(normalized.map((d) => d.tipo_campo)));
         }
       });
-  }, [template.id]);
+  }, [template.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Añadir campo ──────────────────────────────────────────────────────────
   const addCampo = () => {
     const newCampo: Campo = {
       id: `local-${Date.now()}`,
@@ -122,11 +153,13 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
       letter_spacing: 0,
       auto_fit: true,
       visible: true,
+      orden: campos.length,      // orden secuencial para carga correcta
     };
     setCampos([...campos, newCampo]);
     setSelected(newCampo.id);
   };
 
+  // ── Eliminar campo (solo local — la BD se sincroniza en handleSave) ────────
   const removeCampo = (id: string) => {
     setCampos(campos.filter((c) => c.id !== id));
     if (selected === id) setSelected(null);
@@ -136,27 +169,24 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
     setCampos(campos.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
+  // ── Alineación rápida ─────────────────────────────────────────────────────
   const centerHorizontal = () => {
     if (!selected || !selectedCampo) return;
-    const newX = Math.round((imgNatural.w - selectedCampo.width) / 2);
-    updateCampo(selected, { pos_x: newX });
+    updateCampo(selected, { pos_x: Math.round((imgNatural.w - selectedCampo.width) / 2) });
   };
-
   const centerVertical = () => {
     if (!selected || !selectedCampo) return;
-    const newY = Math.round((imgNatural.h - selectedCampo.height) / 2);
-    updateCampo(selected, { pos_y: newY });
+    updateCampo(selected, { pos_y: Math.round((imgNatural.h - selectedCampo.height) / 2) });
   };
-
   const centerBoth = () => {
     if (!selected || !selectedCampo) return;
-    updateCampo(selected, { 
+    updateCampo(selected, {
       pos_x: Math.round((imgNatural.w - selectedCampo.width) / 2),
-      pos_y: Math.round((imgNatural.h - selectedCampo.height) / 2)
+      pos_y: Math.round((imgNatural.h - selectedCampo.height) / 2),
     });
   };
 
-  // Drag logic
+  // ── Drag logic ────────────────────────────────────────────────────────────
   const onMouseDown = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     const campo = campos.find((c) => c.id === id);
@@ -184,29 +214,51 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
       const newY = Math.max(0, (e.clientY - rect.top) * scaleY - dragOffsetRef.current.y);
       updateCampo(dragging, { pos_x: Math.round(newX), pos_y: Math.round(newY) });
     },
-    [dragging, imgNatural]
+    [dragging, imgNatural] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const onMouseUp = () => setDragging(null);
 
+  // ── Guardar ───────────────────────────────────────────────────────────────
+  // Flujo de sincronización completa:
+  //   1. DELETE campos en BD que ya no están en el editor (fueron removidos)
+  //   2. UPSERT todos los campos actuales
+  //   3. Actualizar dbTipoCampos para reflejar el nuevo estado persistido
   const handleSave = async () => {
+    if (!eventoId) {
+      toast({ title: "Sin evento asociado", description: "No hay un evento vinculado para guardar esta configuración.", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
     try {
-      // Guardar cada campo individualmente usando la nueva lógica RPC centralizada
-      // Buscamos el eventoId si no está disponible directamente
-      const targetEventoId = eventoId;
-      
-      if (!targetEventoId) {
-        throw new Error("No hay un evento asociado para guardar esta configuración.");
+      const currentTypes = new Set(campos.map((c) => c.tipo_campo));
+
+      // 1. Determinar qué tipo_campo se eliminaron del editor respecto a BD
+      const typesToDelete = Array.from(dbTipoCampos).filter((t) => !currentTypes.has(t));
+
+      if (typesToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("plantilla_campos_certificado")
+          .delete()
+          .eq("plantilla_certificado_id", template.id)
+          .in("tipo_campo", typesToDelete);
+
+        if (deleteError) throw new Error(`Error al eliminar campos: ${deleteError.message}`);
+        console.log("[CertificateEditor] eliminados de BD:", typesToDelete);
       }
 
-      for (const field of campos) {
-        await certificateTemplateService.saveFieldConfig(targetEventoId, field);
+      // 2. Upsert todos los campos actuales (con orden actualizado)
+      for (let i = 0; i < campos.length; i++) {
+        await certificateTemplateService.saveFieldConfig(eventoId, { ...campos[i], orden: i });
       }
-      
-      toast({ 
-        title: "Configuración guardada", 
-        description: "Los campos se han vinculado al evento y plantilla correctamente." 
+
+      // 3. Actualizar estado persistido
+      setDbTipoCampos(currentTypes);
+
+      toast({
+        title: "Plantilla guardada",
+        description: `${campos.length} campo${campos.length !== 1 ? "s" : ""} sincronizado${campos.length !== 1 ? "s" : ""} con la base de datos.`,
       });
     } catch (error: any) {
       toast({ title: "Error al guardar", description: error.message, variant: "destructive" });
@@ -230,7 +282,6 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
             <Grid3X3 className="w-4 h-4" />
             Guías
           </Button>
-
           <Button size="sm" className="gap-2" onClick={addCampo} disabled={previewMode}>
             <Plus className="w-4 h-4" />
             Añadir campo
@@ -264,7 +315,6 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
               draggable={false}
             />
 
-            {/* Guías centrales */}
             {showGuides && (
               <>
                 <div className="absolute top-0 bottom-0 left-1/2 border-l border-primary/40 border-dashed pointer-events-none" />
@@ -309,19 +359,17 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                   >
                     {previewMode || campo.tipo_campo === "nombre_completo" || campo.tipo_campo === "numero_documento"
                       ? (
-                        campo.tipo_campo === "nombre_completo" ? testName : 
+                        campo.tipo_campo === "nombre_completo" ? testName :
                         campo.tipo_campo === "numero_documento" ? testDocument :
                         PREVIEW_VALUES[campo.tipo_campo] || campo.etiqueta
-                      ) 
+                      )
                       : campo.etiqueta}
                   </span>
-                  {/* Indicador de desbordamiento (solo ayuda visual) */}
                   <div className="absolute inset-0 pointer-events-none border-2 border-transparent hover:border-dashed hover:border-white/20" />
                 </div>
               );
             })}
 
-            {/* Guía visual del nombre cuando se edita el documento */}
             {!previewMode && selectedCampo?.tipo_campo === "numero_documento" && campos.find(c => c.tipo_campo === "nombre_completo") && (
               (() => {
                 const nombreCampo = campos.find(c => c.tipo_campo === "nombre_completo")!;
@@ -329,7 +377,7 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                 const scaleX = containerRect ? containerRect.width / imgNatural.w : 1;
                 const scaleY = containerRect ? containerRect.height / imgNatural.h : 1;
                 return (
-                  <div 
+                  <div
                     className="absolute border-2 border-primary/30 border-dashed pointer-events-none flex items-center justify-center"
                     style={{
                       left: nombreCampo.pos_x * scaleX,
@@ -349,7 +397,7 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
           </p>
         </div>
 
-        {/* Panel de propiedades del campo seleccionado */}
+        {/* Panel de propiedades */}
         {selectedCampo && !previewMode && (
           <Card className="w-80 shrink-0 shadow-sm border">
             <CardHeader className="pb-2">
@@ -392,21 +440,17 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                 </div>
               </div>
 
-              {/* Botones de Alineación Rápida */}
               <div className="space-y-1.5 px-0.5">
                 <Label className="text-[10px] text-muted-foreground uppercase font-bold">Alineación Rápida</Label>
                 <div className="flex gap-1.5">
                   <Button variant="secondary" size="sm" className="flex-1 h-8 text-[11px] gap-1" onClick={centerHorizontal} title="Centrar Horizontalmente">
-                    <AlignHorizontalSpaceAround className="w-3 h-3" />
-                    H
+                    <AlignHorizontalSpaceAround className="w-3 h-3" /> H
                   </Button>
                   <Button variant="secondary" size="sm" className="flex-1 h-8 text-[11px] gap-1" onClick={centerVertical} title="Centrar Verticalmente">
-                    <AlignVerticalSpaceAround className="w-3 h-3" />
-                    V
+                    <AlignVerticalSpaceAround className="w-3 h-3" /> V
                   </Button>
                   <Button variant="secondary" size="sm" className="flex-1 h-8 text-[11px] gap-1" onClick={centerBoth} title="Centrar en ambos ejes">
-                    <AlignCenter className="w-3 h-3" />
-                    Centro
+                    <AlignCenter className="w-3 h-3" /> Centro
                   </Button>
                 </div>
               </div>
@@ -429,26 +473,61 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Fuente</Label>
+                <Select value={selectedCampo.font_family} onValueChange={(v) => updateCampo(selectedCampo.id, { font_family: v })}>
+                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FONT_FAMILIES.map((f) => (
+                      <SelectItem key={f} value={f} style={{ fontFamily: f }}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
-                {/* Estilos tipográficos simplificados para n8n */}
-                <div className="col-span-2 p-2 bg-blue-50/50 rounded text-[11px] text-blue-700 border border-blue-100">
-                  <p>Nota: Las opciones de fuente y colores técnicos se configuran en n8n.</p>
+                <div className="space-y-1">
+                  <Label>Peso</Label>
+                  <Select value={selectedCampo.font_weight} onValueChange={(v) => updateCampo(selectedCampo.id, { font_weight: v })}>
+                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="bold">Negrita</SelectItem>
+                      <SelectItem value="300">Light (300)</SelectItem>
+                      <SelectItem value="500">Medium (500)</SelectItem>
+                      <SelectItem value="600">SemiBold (600)</SelectItem>
+                      <SelectItem value="700">Bold (700)</SelectItem>
+                      <SelectItem value="800">ExtraBold (800)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Color</Label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={selectedCampo.color}
+                      onChange={(e) => updateCampo(selectedCampo.id, { color: e.target.value })}
+                      className="h-8 w-10 rounded border border-slate-200 cursor-pointer p-0.5"
+                    />
+                    <Input
+                      value={selectedCampo.color}
+                      onChange={(e) => updateCampo(selectedCampo.id, { color: e.target.value })}
+                      className="h-8 font-mono text-xs flex-1"
+                      maxLength={7}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Sección de Prueba de Datos Dinámica */}
               <div className="pt-4 border-t space-y-3">
                 <Label className="text-xs font-bold text-primary uppercase">Vista Previa de Datos</Label>
-                
+
                 {selectedCampo.tipo_campo === "nombre_completo" && (
                   <>
                     <div className="space-y-1">
                       <Label className="text-xs">Nombre de prueba</Label>
-                      <Input 
-                        value={testName} 
-                        onChange={(e) => setTestName(e.target.value)} 
-                        className="h-8 text-xs"
-                      />
+                      <Input value={testName} onChange={(e) => setTestName(e.target.value)} className="h-8 text-xs" />
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       <Button variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={() => setTestName(TEST_NAMES.corto)}>Corto</Button>
@@ -463,11 +542,7 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                   <>
                     <div className="space-y-1">
                       <Label className="text-xs">Documento de prueba</Label>
-                      <Input 
-                        value={testDocument} 
-                        onChange={(e) => setTestDocument(e.target.value)} 
-                        className="h-8 text-xs"
-                      />
+                      <Input value={testDocument} onChange={(e) => setTestDocument(e.target.value)} className="h-8 text-xs" />
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       <Button variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={() => setTestDocument(TEST_DOCUMENTS.corto)}>Corto</Button>
@@ -481,12 +556,11 @@ export default function CertificateEditor({ template, initialFields, eventoId }:
                 {!["nombre_completo", "numero_documento"].includes(selectedCampo.tipo_campo) && (
                   <p className="text-[11px] text-muted-foreground italic">No hay herramientas de prueba específicas para este campo.</p>
                 )}
-                
-                {/* Detección visual de desbordamiento */}
+
                 <div className="p-2 bg-muted rounded-md text-[11px] space-y-1">
                   <p className="font-semibold text-primary">Validación Visual:</p>
                   <p className="text-muted-foreground leading-tight">
-                    Asegúrate de que el texto quepa en la caja azul. 
+                    Asegúrate de que el texto quepa en la caja azul.
                     Si se desborda, ajusta <span className="font-medium">Ancho</span> o <span className="font-medium">Tamaño</span> manualmente.
                   </p>
                 </div>

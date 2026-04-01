@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { formatToBogota, isAvailable } from "@/lib/date";
+import { formatToBogota, isAvailable, getBogotaDateString, formatTimeAMPM } from "@/lib/date";
 import { checkExistingRegistration } from "@/app/actions/validation";
 import { Loader2, AlertCircle, XCircle, MapPin, Building2, CreditCard } from "lucide-react";
 import { COLOMBIA_DATA } from "@/lib/colombiaData";
@@ -33,18 +33,23 @@ const DOCUMENT_TYPES = [
 ];
 
 const COMPANY_TYPES = [
-  "Persona natural",
-  "Persona jurídica",
-  "SAS",
-  "LTDA",
-  "SA",
-  "Sucursal extranjera",
-  "Entidad pública",
-  "ONG / ESAL",
-  "Cooperativa",
-  "Fundación",
-  "Asociación",
-  "Otro"
+  "Economía Popular",
+  "Tenderos",
+  "Otros No Registrados",
+  "Persona Natural Registrada",
+  "ESAL",
+  "Persona Jurídica - Sector Manufacturero Micro",
+  "Persona Jurídica - Sector Manufacturero Pequeña",
+  "Persona Jurídica - Sector Manufacturero Mediana",
+  "Persona Jurídica - Sector Servicios Micro",
+  "Persona Jurídica - Sector Servicios Pequeña",
+  "Persona Jurídica - Sector Servicios Mediana",
+  "Persona Jurídica - Sector Comercio Micro",
+  "Persona Jurídica - Sector Comercio Pequeña",
+  "Persona Jurídica - Sector Comercio Mediana",
+  "Otros Personas Jurídicas",
+  "Otros tipos de Beneficiarios",
+  "No Aplica"
 ];
 
 const DOCUMENT_TYPE_MAP: Record<string, string> = {
@@ -66,6 +71,8 @@ interface DynamicFormProps {
   eventoDescripcion?: string | null;
   eventoFechaInicio?: string | null;
   eventoHoraInicio?: string | null;
+  eventoFechaFin?: string | null;
+  eventoHoraFin?: string | null;
   eventoLugar?: string | null;
   fields: any[];
   fechaApertura?: string | null;
@@ -84,6 +91,8 @@ export function DynamicForm({
   eventoDescripcion,
   eventoFechaInicio,
   eventoHoraInicio,
+  eventoFechaFin,
+  eventoHoraFin,
   eventoLugar,
   fields, 
   fechaApertura, 
@@ -121,6 +130,21 @@ export function DynamicForm({
   const isBeforeOpen = availability.isBefore;
   const isAfterClose = availability.isAfter;
   const isExpired = !availability.available;
+
+  // Lógica de fechas del evento para mostrar en el header
+  const fechaInicioStr = getBogotaDateString(eventoFechaInicio);
+  const fechaFinStr = getBogotaDateString(eventoFechaFin);
+  const isSameDay = !!fechaInicioStr && !!fechaFinStr && fechaInicioStr === fechaFinStr;
+
+  const displayDate = isSameDay
+    ? formatToBogota(eventoFechaInicio, { weekday: 'short', day: 'numeric', month: 'long' })
+    : (eventoFechaInicio && eventoFechaFin) 
+      ? `${formatToBogota(eventoFechaInicio, { day: 'numeric', month: 'short' })} - ${formatToBogota(eventoFechaFin, { day: 'numeric', month: 'short' })}`
+      : formatToBogota(eventoFechaInicio, { weekday: 'short', day: 'numeric', month: 'long' });
+
+  const displayTime = (isSameDay && eventoHoraInicio && eventoHoraFin)
+    ? `${formatTimeAMPM(eventoHoraInicio)} - ${formatTimeAMPM(eventoHoraFin)}`
+    : formatTimeAMPM(eventoHoraInicio);
 
   // LOGS TEMPORALES DE DIAGNÓSTICO
   useEffect(() => {
@@ -459,19 +483,19 @@ export function DynamicForm({
         )}
 
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-4">
-          {eventoFechaInicio && (
+          {displayDate && (
             <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-200/60 dark:border-slate-700">
               <span className="text-primary text-xl">📅</span>
               <span className="font-medium text-slate-700 dark:text-slate-200">
-                {formatToBogota(eventoFechaInicio, { weekday: 'short', day: 'numeric', month: 'long' })}
+                {displayDate}
               </span>
             </div>
           )}
-          {eventoHoraInicio && (
+          {displayTime && (
             <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-200/60 dark:border-slate-700">
               <span className="text-primary text-xl">⏰</span>
               <span className="font-medium text-slate-700 dark:text-slate-200">
-                {eventoHoraInicio}
+                {displayTime}
               </span>
             </div>
           )}

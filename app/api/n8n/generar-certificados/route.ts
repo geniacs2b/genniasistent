@@ -34,7 +34,52 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Obtener URL de n8n desde variables de entorno
+    // 1.5. Consultar configuración de Módulo SaaS Nativo (Feature Toggle)
+    const { data: eventoFull } = await supabase
+      .from('eventos')
+      .select('tenant_id, tenants(use_native_engine)')
+      .eq('id', evento_id)
+      .single();
+
+    const tenantId = eventoFull?.tenant_id;
+    // Note: TypeScript might not type "tenants" relation correctly if it's dynamic, so using any.
+    const useNativeEngine = (eventoFull as any)?.tenants?.use_native_engine;
+
+    if (useNativeEngine && tenantId) {
+       // BUG-FIX: personas no tiene evento_id — obtener via inscripciones
+       const { data: inscripciones } = await supabase
+         .from('inscripciones')
+         .select('persona_id')
+         .eq('evento_id', evento_id);
+       const personas_ids = inscripciones?.map((i) => i.persona_id).filter(Boolean) || [];
+
+       if (personas_ids.length === 0) {
+           return NextResponse.json({ ok: true, message: "No hay personas para procesar" });
+       }
+       
+       const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+       if (!publicBaseUrl) throw new Error("PUBLIC_BASE_URL no configurada");
+
+       const localUrl = `${publicBaseUrl}/api/jobs/batch`;
+       const nativeResponse = await fetch(localUrl, {
+           method: "POST",
+           headers: { "Content-type": "application/json" },
+           body: JSON.stringify({ evento_id, tenant_id: tenantId, participantes_ids: personas_ids })
+       });
+
+       if (!nativeResponse.ok) {
+           const nativeErr = await nativeResponse.text();
+           console.error("Native Engine error:", nativeErr);
+           return NextResponse.json({ ok: false, message: 'Error en el motor nativo de certificados' }, { status: nativeResponse.status || 500 });
+       }
+
+       return NextResponse.json({
+          ok: true,
+          message: 'Motor nativo paralelo (QStash) iniciado con éxito',
+       });
+    }
+
+    // 2. Obtener URL de n8n desde variables de entorno (LEGADO)
     const n8nWebhookUrl = process.env.N8N_CERTIFICADOS_WEBHOOK_URL;
 
     if (!n8nWebhookUrl) {

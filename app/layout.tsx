@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 
 import PublicLayoutWrapper from "@/components/PublicLayoutWrapper";
+import { SessionMonitor } from "@/components/SessionMonitor";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -28,6 +29,7 @@ export default function RootLayout({
         </PublicLayoutWrapper>
         
         <Toaster />
+        <SessionMonitor />
       </body>
     </html>
   );

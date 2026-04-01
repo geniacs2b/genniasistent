@@ -1,0 +1,381 @@
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { saveEmailConfigAction, sendTestEmailAction } from "@/app/actions/emailActions";
+import {
+  Save, Globe, Phone, Mail, MapPin as MapMarker, Facebook, Instagram, Linkedin, Twitter,
+  Loader2, Info, CheckCircle2, XCircle, AlertCircle, Send, RefreshCw, Eye,
+} from "lucide-react";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { EmailPreview } from "@/components/EmailPreview";
+
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.6-4.12-1.31a8.776 8.776 0 0 1-1.87-1.42v7.74c.04 4.14-2.88 8.04-6.99 8.91-4.11.87-8.49-1.39-9.84-5.32-1.39-3.91.43-8.52 4.19-10.34 1.16-.57 2.45-.83 3.73-.81v3.91c-.81-.07-1.63.05-2.38.38-.93.41-1.67 1.2-1.99 2.16-.39.98-.24 2.16.42 2.94.61.76 1.61 1.15 2.58 1.01.99-.11 1.84-.81 2.13-1.74.12-.42.15-.86.15-1.3v-11.4c-.01-1.05.01-2.11-.01-3.16Z" />
+  </svg>
+);
+
+interface OAuthConfig {
+  id: string;
+  provider: string;
+  sender_email: string;
+  is_active: boolean;
+  token_expires_at: string | null;
+}
+
+interface ConfigCorreoTabProps {
+  config: any;
+  oauthConfig: OAuthConfig | null;
+}
+
+export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
+  const [loading, setLoading] = useState(false);
+  const [firmaHtml, setFirmaHtml] = useState(config?.firma_html || "");
+  const [footerHtml, setFooterHtml] = useState(config?.footer_html || "");
+  const [mostrarFooter, setMostrarFooter] = useState(config?.mostrar_footer ?? true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [testEmail, setTestEmail]   = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
+  const { toast } = useToast();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    formData.set("firma_html", firmaHtml);
+    formData.set("footer_html", footerHtml);
+    formData.set("mostrar_footer", String(mostrarFooter));
+
+    try {
+      const res = await saveEmailConfigAction(formData);
+      if (res.success) {
+        toast({ title: "Configuración guardada", description: "Los cambios se aplicaron correctamente." });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error de red", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSendTest() {
+    if (!testEmail.trim()) {
+      toast({ title: "Ingresa un correo", description: "Escribe la dirección destino del correo de prueba.", variant: "destructive" });
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const res = await sendTestEmailAction(testEmail.trim());
+      if (res.success) {
+        toast({ title: "Correo de prueba enviado", description: res.message });
+      } else {
+        toast({ title: "Error al enviar", description: res.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error de red", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
+  // Estado del OAuth para el indicador visual
+  const oauthConnected = !!oauthConfig?.is_active;
+  const tokenExpired   = oauthConfig?.token_expires_at
+    ? new Date(oauthConfig.token_expires_at) < new Date()
+    : false;
+
+  // Config actual para la vista previa (usa datos del formulario actual)
+  const previewConfig = config ?? {};
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8 pb-12">
+      <input type="hidden" name="id" value={config?.id || ""} />
+
+      {/* ── Motor de Envío OAuth ─────────────────────────────────────────── */}
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-xl">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">Motor de Envío (OAuth)</CardTitle>
+              <CardDescription>Conecta una cuenta de Google Workspace o Gmail para enviar tus certificados.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 space-y-6">
+
+          {/* ── Indicador de estado de conexión ──────────────────────────── */}
+          {oauthConfig ? (
+            <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+              oauthConnected && !tokenExpired
+                ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/30"
+                : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/30"
+            }`}>
+              <div className="flex items-center gap-4">
+                {oauthConnected && !tokenExpired ? (
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-8 h-8 text-amber-500 shrink-0" />
+                )}
+                <div>
+                  <p className={`font-bold text-sm ${oauthConnected && !tokenExpired ? "text-emerald-800 dark:text-emerald-400" : "text-amber-800 dark:text-amber-400"}`}>
+                    {oauthConnected && !tokenExpired ? "Cuenta conectada y activa" : tokenExpired ? "Token expirado — reconectar" : "Cuenta desconectada"}
+                  </p>
+                  <p className="text-sm font-mono text-slate-600 dark:text-slate-400 mt-0.5">{oauthConfig.sender_email}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 capitalize">Proveedor: {oauthConfig.provider}</p>
+                </div>
+              </div>
+              <a
+                href="/api/oauth/google"
+                className="shrink-0 flex items-center gap-2 h-10 px-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-sm rounded-xl font-bold transition-all text-slate-700 dark:text-slate-300 text-sm"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Reconectar
+              </a>
+            </div>
+          ) : (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <XCircle className="w-8 h-8 text-red-500 shrink-0" />
+                <div>
+                  <p className="font-bold text-sm text-red-800 dark:text-red-400">Sin cuenta de envío conectada</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Los certificados no podrán ser enviados por correo hasta que conectes una cuenta.</p>
+                </div>
+              </div>
+              <a
+                href="/api/oauth/google"
+                className="shrink-0 flex items-center gap-2 h-10 px-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-sm rounded-xl font-bold transition-all text-slate-700 dark:text-slate-300 text-sm"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Conectar cuenta Google
+              </a>
+            </div>
+          )}
+
+          {/* ── Correo de prueba ─────────────────────────────────────────── */}
+          {oauthConnected && !tokenExpired && (
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                <Send className="w-4 h-4 text-primary" /> Enviar Correo de Prueba
+              </p>
+              <div className="flex gap-3">
+                <Input
+                  type="email"
+                  placeholder="destinatario@ejemplo.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="h-11 bg-white dark:bg-slate-900 rounded-xl border-slate-200 flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={handleSendTest}
+                  disabled={sendingTest}
+                  className="h-11 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shrink-0"
+                >
+                  {sendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Enviar</>}
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">Se enviará un correo con datos de ejemplo usando tu branding actual.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Identidad del Remitente ──────────────────────────────────────── */}
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Mail className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">Identidad del Remitente</CardTitle>
+              <CardDescription>Configura cómo aparecerán tus correos ante los destinatarios.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nombre del Remitente</Label>
+            <Input name="nombre_remitente" defaultValue={config?.nombre_remitente} placeholder="Ej. Eventos Institucionales" className="h-12 bg-white/70 dark:bg-slate-900 rounded-xl border-slate-200" required />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Email de Respuesta (Reply-To)</Label>
+            <Input name="email_respuesta" type="email" defaultValue={config?.email_respuesta} placeholder="ejemplo@organizacion.com" className="h-12 bg-white/70 dark:bg-slate-900 rounded-xl border-slate-200" required />
+          </div>
+          <div className="space-y-3 md:col-span-2">
+            <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">URL del Logo Institucional</Label>
+            <Input name="logo_url" defaultValue={config?.logo_url} placeholder="https://tusitio.com/logo.png" className="h-12 bg-white/70 dark:bg-slate-900 rounded-xl border-slate-200" />
+            <p className="text-[11px] text-slate-500 font-medium italic">Se recomienda una imagen con fondo transparente y altura de 60px.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Firma y Footer ───────────────────────────────────────────────── */}
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-xl">
+              <Info className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">Diseño del Correo</CardTitle>
+              <CardDescription>Personaliza la firma y el pie de página institucional.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 space-y-8">
+          <div className="space-y-3">
+            <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Firma Institucional (Texto Enriquecido)</Label>
+            <RichTextEditor content={firmaHtml} onChange={setFirmaHtml} placeholder="Ej. Cordialmente, Equipo de Eventos" />
+            <p className="text-[11px] text-slate-500 font-medium italic">Esta firma se añadirá al final de los correos si la plantilla lo permite.</p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700">
+              <Checkbox
+                id="mostrar_footer"
+                checked={mostrarFooter}
+                onCheckedChange={(v) => setMostrarFooter(v as boolean)}
+                className="w-5 h-5"
+              />
+              <Label htmlFor="mostrar_footer" className="text-sm font-bold cursor-pointer">Mostrar Footer Institucional en cada correo</Label>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Mensaje del Footer (Opcional)</Label>
+            <RichTextEditor content={footerHtml} onChange={setFooterHtml} placeholder="Ej. Este es un correo automático, por favor no lo respondas." />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Contacto y Redes Sociales ────────────────────────────────────── */}
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 rounded-xl">
+              <Globe className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">Contacto y Redes Sociales</CardTitle>
+              <CardDescription>Información complementaria para el pie de página.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3 flex flex-col">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Phone className="w-3 h-3" /> Teléfono
+            </Label>
+            <Input name="telefono_contacto" defaultValue={config?.telefono_contacto} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3 flex flex-col">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Mail className="w-3 h-3" /> Email Contacto
+            </Label>
+            <Input name="email_contacto" defaultValue={config?.email_contacto} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3 flex flex-col">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Globe className="w-3 h-3" /> Sitio Web
+            </Label>
+            <Input name="sitio_web" defaultValue={config?.sitio_web} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3 flex flex-col md:col-span-2 lg:col-span-3">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <MapMarker className="w-3 h-3" /> Dirección
+            </Label>
+            <Input name="direccion_contacto" defaultValue={config?.direccion_contacto} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <Facebook className="w-3 h-3 text-blue-600" /> Facebook (URL)
+            </Label>
+            <Input name="facebook_url" defaultValue={config?.facebook_url} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <Instagram className="w-3 h-3 text-pink-600" /> Instagram (URL)
+            </Label>
+            <Input name="instagram_url" defaultValue={config?.instagram_url} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <Linkedin className="w-3 h-3 text-blue-700" /> LinkedIn (URL)
+            </Label>
+            <Input name="linkedin_url" defaultValue={config?.linkedin_url} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <Twitter className="w-3 h-3 text-slate-900" /> X / Twitter (URL)
+            </Label>
+            <Input name="x_url" defaultValue={config?.x_url} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <TikTokIcon className="w-3 h-3 text-[#000000] dark:text-white" /> TikTok (URL)
+            </Label>
+            <Input name="tiktok_url" defaultValue={config?.tiktok_url} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Vista Previa en tiempo real ──────────────────────────────────── */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowPreview(v => !v)}
+          className="flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors mb-4"
+        >
+          <Eye className="w-4 h-4" />
+          {showPreview ? "Ocultar vista previa del correo" : "Ver cómo lucirá el correo de certificado"}
+        </button>
+
+        {showPreview && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-400">
+            <EmailPreview
+              content="<p>Estimado/a <strong>{{nombre_participante}}</strong>, te informamos que tu certificado de participación en <strong>{{evento_titulo}}</strong> ya está disponible.</p>"
+              subject={`Certificado de "${config?.nombre_remitente ?? "tu organización"}"`}
+              config={previewConfig}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ── Botón de Guardado ────────────────────────────────────────────── */}
+      <div className="sticky bottom-8 flex justify-center z-50">
+        <Button
+          type="submit"
+          disabled={loading}
+          className="h-14 px-10 rounded-full font-bold shadow-2xl shadow-primary/40 flex items-center gap-3 scale-110 active:scale-100 transition-all hover:-translate-y-1 bg-primary text-white"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Guardar Configuración Institucional
+        </Button>
+      </div>
+    </form>
+  );
+}

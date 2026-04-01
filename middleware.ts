@@ -56,21 +56,49 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Proteger rutas de admin excluyendo la propia página de login que podríamos definir
-  if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login')) {
-    if (!user) {
-      // Redirigir al login si no hay usuario
-      const loginUrl = request.nextUrl.clone()
-      loginUrl.pathname = '/admin/login'
-      return NextResponse.redirect(loginUrl)
+  const pathname = request.nextUrl.pathname;
+  
+  // API requests, auth callback, and internal paths bypass strict UI routing
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/auth/') ||
+    pathname.includes('.')
+  ) {
+    return supabaseResponse;
+  }
+
+  const isAuthRoute = pathname === '/login' || pathname === '/registro' || pathname === '/recuperar-password';
+  const isAppRoute  = pathname.startsWith('/app');
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
+
+  const tenantId = user?.app_metadata?.tenant_id;
+
+  // 1. Proteger panel de administración (/app)
+  if (isAppRoute) {
+    if (!user) return NextResponse.redirect(new URL('/login', request.url));
+    // Sin tenant: fallback al onboarding (usuarios legacy sin tenant)
+    if (!tenantId) return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
+  }
+
+  // 2. Proteger Onboarding (/onboarding) — flujo legacy, solo si no tienen tenant aún
+  if (isOnboardingRoute) {
+    if (!user) return NextResponse.redirect(new URL('/login', request.url));
+    if (tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+  }
+
+  // 3. Bloquear rutas de auth a usuarios ya autenticados con tenant
+  if (isAuthRoute) {
+    if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+    // Usuario autenticado sin tenant: deja pasar a /registro, redirige al onboarding desde otros
+    if (user && !tenantId && pathname !== '/registro') {
+      return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
     }
   }
 
-  // Redirigir a dashboard si usuario autenticado va al login directamente
-  if (request.nextUrl.pathname === '/admin/login' && user) {
-     const dashboardUrl = request.nextUrl.clone()
-     dashboardUrl.pathname = '/admin/dashboard'
-     return NextResponse.redirect(dashboardUrl)
+  // Landing page redirect para usuarios autenticados
+  if (pathname === '/') {
+    if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
   }
 
   return supabaseResponse

@@ -5,19 +5,26 @@
 -- 1. CERTIFICATE TEMPLATES (PLANTILLAS)
 -----------------------------------------------------------------------------------------
 
--- Guardar campos de plantilla (Corregido para manejar asociación por evento y plantilla)
+-- Guardar campos de plantilla — acepta todos los parámetros tipográficos
+-- (definición canónica mantenida en sincronía con migration_05)
 CREATE OR REPLACE FUNCTION public.guardar_campo_plantilla_evento(
-    p_evento_id uuid,
-    p_tipo_campo text,
-    p_etiqueta text,
-    p_posicion_x numeric,
-    p_posicion_y numeric,
-    p_ancho_caja numeric,
-    p_alto_caja numeric,
-    p_text_align text,
-    p_font_size integer DEFAULT 24,
-    p_visible boolean DEFAULT true,
-    p_orden integer DEFAULT 0
+    p_evento_id       uuid,
+    p_tipo_campo      text,
+    p_etiqueta        text,
+    p_posicion_x      numeric,
+    p_posicion_y      numeric,
+    p_ancho_caja      numeric,
+    p_alto_caja       numeric,
+    p_text_align      text,
+    p_font_size       integer  DEFAULT 24,
+    p_visible         boolean  DEFAULT true,
+    p_orden           integer  DEFAULT 0,
+    p_font_family     text     DEFAULT 'Arial',
+    p_font_weight     text     DEFAULT 'normal',
+    p_color           text     DEFAULT '#000000',
+    p_line_height     numeric  DEFAULT 1.2,
+    p_letter_spacing  numeric  DEFAULT 0,
+    p_auto_fit        boolean  DEFAULT true
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -27,7 +34,6 @@ DECLARE
     v_plantilla_id uuid;
     v_campo_id uuid;
 BEGIN
-    -- 1. Obtener la plantilla asociada al evento
     SELECT plantilla_certificado_id INTO v_plantilla_id
     FROM public.eventos
     WHERE id = p_evento_id;
@@ -36,55 +42,40 @@ BEGIN
         RAISE EXCEPTION 'El evento no tiene una plantilla de certificado asociada.';
     END IF;
 
-    -- 2. Upsert del campo (basado en plantilla y tipo de campo)
     INSERT INTO public.plantilla_campos_certificado (
         plantilla_certificado_id,
-        tipo_campo,
-        etiqueta,
-        pos_x,
-        pos_y,
-        width,
-        height,
-        text_align,
-        font_size,
-        visible,
-        orden,
-        font_family,
-        font_weight,
-        color,
-        line_height,
-        letter_spacing
+        tipo_campo, etiqueta,
+        pos_x, pos_y, width, height,
+        text_align, font_size, visible, orden,
+        font_family, font_weight, color,
+        line_height, letter_spacing, auto_fit
     )
     VALUES (
         v_plantilla_id,
-        p_tipo_campo,
-        p_etiqueta,
-        p_posicion_x,
-        p_posicion_y,
-        p_ancho_caja,
-        p_alto_caja,
-        p_text_align,
-        p_font_size,
-        p_visible,
-        p_orden,
-        'Arial', -- Defaults for required fields not in editor
-        'normal',
-        '#000000',
-        1.2,
-        0
+        p_tipo_campo, p_etiqueta,
+        p_posicion_x, p_posicion_y, p_ancho_caja, p_alto_caja,
+        p_text_align, p_font_size, p_visible, p_orden,
+        p_font_family, p_font_weight, p_color,
+        p_line_height, p_letter_spacing, p_auto_fit
     )
     ON CONFLICT (plantilla_certificado_id, tipo_campo) DO UPDATE
-    SET 
-        etiqueta = EXCLUDED.etiqueta,
-        pos_x = EXCLUDED.pos_x,
-        pos_y = EXCLUDED.pos_y,
-        width = EXCLUDED.width,
-        height = EXCLUDED.height,
-        text_align = EXCLUDED.text_align,
-        font_size = EXCLUDED.font_size,
-        visible = EXCLUDED.visible,
-        orden = EXCLUDED.orden,
-        updated_at = now()
+    SET
+        etiqueta       = EXCLUDED.etiqueta,
+        pos_x          = EXCLUDED.pos_x,
+        pos_y          = EXCLUDED.pos_y,
+        width          = EXCLUDED.width,
+        height         = EXCLUDED.height,
+        text_align     = EXCLUDED.text_align,
+        font_size      = EXCLUDED.font_size,
+        visible        = EXCLUDED.visible,
+        orden          = EXCLUDED.orden,
+        font_family    = EXCLUDED.font_family,
+        font_weight    = EXCLUDED.font_weight,
+        color          = EXCLUDED.color,
+        line_height    = EXCLUDED.line_height,
+        letter_spacing = EXCLUDED.letter_spacing,
+        auto_fit       = EXCLUDED.auto_fit,
+        updated_at     = now()
     RETURNING id INTO v_campo_id;
 
     RETURN v_campo_id;
@@ -263,11 +254,19 @@ DECLARE
     v_persona_id uuid;
     v_asistencia_id uuid;
     v_inscripcion_id uuid;
+    v_fecha date;
+    v_h_inicio time;
+    v_h_fin time;
 BEGIN
     -- 1. Validar Token (sesion_evento_id)
-    SELECT id, sesion_evento_id, evento_id INTO v_token_id, v_sesion_id, v_evento_id
-    FROM public.qr_tokens_asistencia 
-    WHERE token = p_token AND activo = true;
+    -- Se obtienen tiempos de la sesión para validar disponibilidad temporal
+    SELECT 
+        q.id, q.sesion_evento_id, q.evento_id,
+        s.fecha, s.hora_inicio, s.hora_fin
+    INTO v_token_id, v_sesion_id, v_evento_id, v_fecha, v_h_inicio, v_h_fin
+    FROM public.qr_tokens_asistencia q
+    JOIN public.sesiones_evento s ON q.sesion_evento_id = s.id
+    WHERE q.token = p_token AND q.activo = true;
 
     IF v_token_id IS NULL THEN
         RETURN jsonb_build_object(
@@ -276,6 +275,29 @@ BEGIN
             'error_type', 'INVALID_TOKEN'
         );
     END IF;
+
+    -- 1.1 Validar si la sesión está en curso según su horario (Bogotá)
+    DECLARE
+        v_ahora_bogota timestamp := (now() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota');
+        v_inicio_completo timestamp := (v_fecha + v_h_inicio)::timestamp;
+        v_fin_completo timestamp := (v_fecha + v_h_fin)::timestamp;
+    BEGIN
+        IF v_ahora_bogota < v_inicio_completo THEN
+            RETURN jsonb_build_object(
+                'ok', false,
+                'mensaje', 'Aún no es momento de registrar asistencia. Esta sesión inicia a las ' || to_char(v_h_inicio, 'HH12:MI AM'),
+                'error_type', 'SESSION_NOT_STARTED'
+            );
+        END IF;
+
+        IF v_ahora_bogota > (v_fin_completo + interval '30 minutes') THEN -- Margen de 30 min extra para cerrar
+            RETURN jsonb_build_object(
+                'ok', false,
+                'mensaje', 'El tiempo para registrar asistencia en esta sesión ha expirado.',
+                'error_type', 'SESSION_EXPIRED'
+            );
+        END IF;
+    END;
 
     -- 2. Buscar Persona
     SELECT id INTO v_persona_id FROM public.personas WHERE numero_documento = p_numero_documento;
