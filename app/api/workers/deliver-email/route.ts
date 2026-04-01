@@ -212,8 +212,8 @@ async function handler(req: NextRequest) {
 
     // 6. Construir y enviar mensaje MIME via Gmail API
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_OAUTH_CLIENT_ID,
-      process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
       `${publicBase}/api/oauth/google/callback`,
     );
     oauth2Client.setCredentials({ refresh_token: oauthConfig.refresh_token });
