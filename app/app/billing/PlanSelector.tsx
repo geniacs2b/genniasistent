@@ -81,7 +81,7 @@ export function PlanSelector({ currentPlanKey, wompiActive }: PlanSelectorProps)
           >
             Pagos Anuales{" "}
             <span className="text-[10px] ml-1 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-              -20%
+              2 Meses Gratis
             </span>
           </button>
           {/* Slider background */}

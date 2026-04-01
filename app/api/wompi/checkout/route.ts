@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { WompiService } from '@/lib/wompi';
-import { PLAN_ORDER, type PlanKey } from '@/lib/planConfig';
+import { PLAN_ORDER, PLANS, type PlanKey } from '@/lib/planConfig';
 
 export async function POST(req: NextRequest) {
   // ── PASO 0: Log de arranque + variables de entorno ─────────────
@@ -101,11 +101,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
+    const plan = PLAN_ORDER.includes(planKey) ? PLANS.find(p => p.key === planKey) : null;
+
     console.log('[Checkout Wompi] PASO 4 ─────────────────────────────');
     console.log(`[Checkout Wompi] Detalle del Cobro:
-      - Plan:     ${planKey.toUpperCase()}
-      - Ciclo:    ${isAnnual ? 'Anual' : 'Mensual'}
-      - Monto:    ${amountInCents} centavos (${finalCurrency})
+      - Plan:           ${planKey.toUpperCase()}
+      - Ciclo:          ${isAnnual ? 'Anual' : 'Mensual'}
+      - Precio Mensual: ${plan?.priceMonthly ?? 'N/A'}
+      - Precio Anual:   ${plan?.priceAnnualTotal ?? 'N/A'}
+      - Monto Final:    ${amountInCents} centavos (COP)
       - Referencia de Auditoría generándose...`);
     console.log('[Checkout Wompi] ──────────────────────────────────');
 

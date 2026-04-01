@@ -26,16 +26,24 @@ function getPlanAmountCents(planKey: PlanKey, isAnnual: boolean): number {
     return parseInt(envOverride, 10);
   }
 
-  const basePrice = isAnnual ? plan.priceAnnual : plan.priceMonthly;
+  const basePrice = isAnnual ? plan.priceAnnualTotal : plan.priceMonthly;
 
   if (basePrice === null || basePrice === undefined) {
     // Si no hay precio (ej: Enterprise custom), lanzamos error para evitar checkout accidental de $0
     throw new Error(`[Wompi] El plan ${planKey} (${isAnnual ? 'anual' : 'mensual'}) no tiene un precio definido para checkout automático.`);
   }
 
+  // Validación de seguridad: el monto anual no puede ser menor al mensual si se espera un cobro anual
+  if (isAnnual && plan.priceMonthly && basePrice < plan.priceMonthly) {
+     throw new Error(`[Wompi] Error de configuración: El precio anual total ($${basePrice}) es menor al precio mensual ($${plan.priceMonthly}) para el plan ${planKey}.`);
+  }
+
   const finalAmountCents = COP(basePrice);
   
-  console.log(`[Wompi] Monto calculado para ${planKey}: $${basePrice} COP -> ${finalAmountCents} centavos`);
+  console.log(`[Wompi] Monto calculado para ${planKey}: 
+    - Ciclo: ${isAnnual ? 'Anual' : 'Mensual'}
+    - Precio Base Sugerido: $${basePrice} COP
+    - Centavos Finales: ${finalAmountCents}`);
   
   return finalAmountCents;
 }

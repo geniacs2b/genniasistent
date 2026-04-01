@@ -23,14 +23,15 @@ export type PlanConfig = {
   key: PlanKey;
   name: string;
   description: string;
-  priceMonthly: number | null;  // null = precio custom (Enterprise)
-  priceAnnual: number | null;
-  priceDisplay?: string;        // override del precio mostrado (ej. "199+")
-  annualBillingText?: string;   // ej. "Facturado $228 anualmente"
-  quotaThreshold: number;       // para detectar plan activo desde certificate_quota
-  dark: boolean;                // Pro usa fondo oscuro
-  topBadge?: string;            // badge flotante sobre la card
-  footerMessage?: string;       // mensaje de conversión al pie de la card
+  priceMonthly: number | null;      // null = precio custom (Enterprise)
+  priceAnnual: number | null;       // Equivalente mensual para la UI (Total / 12)
+  priceAnnualTotal: number | null;  // Monto total real a cobrar en checkout anual
+  priceDisplay?: string;            // override del precio mostrado (ej. "199+")
+  annualBillingText?: string;       // ej. "Facturado $228 anualmente"
+  quotaThreshold: number;           // para detectar plan activo desde certificate_quota
+  dark: boolean;                    // Pro usa fondo oscuro
+  topBadge?: string;                // badge flotante sobre la card
+  footerMessage?: string;           // mensaje de conversión al pie de la card
   features: PlanFeature[];
 };
 
@@ -40,8 +41,9 @@ export const PLANS: PlanConfig[] = [
     name: "Starter",
     description: "Ideal para comenzar con tus eventos.",
     priceMonthly: 149000,
-    priceAnnual: 119200,
-    annualBillingText: "Facturado $1.430.400 anualmente",
+    priceAnnual: 124167,
+    priceAnnualTotal: 1490000, // 2 meses gratis ($149k * 10)
+    annualBillingText: "Facturado $1.490.000 anualmente",
     quotaThreshold: 500,
     dark: false,
     features: [
@@ -56,8 +58,9 @@ export const PLANS: PlanConfig[] = [
     name: "Pro SaaS",
     description: "Diseñado para escalar tus eventos sin limitaciones operativas.",
     priceMonthly: 499000,
-    priceAnnual: 399200,
-    annualBillingText: "Facturado $4.790.400 anualmente",
+    priceAnnual: 415833,
+    priceAnnualTotal: 4990000, // 2 meses gratis ($499k * 10)
+    annualBillingText: "Facturado $4.990.000 anualmente",
     quotaThreshold: 3500,
     dark: true,
     topBadge: "RECOMENDADO",
@@ -77,6 +80,7 @@ export const PLANS: PlanConfig[] = [
     description: "Solución para organizaciones con alto volumen de certificados.",
     priceMonthly: 1200000,
     priceAnnual: null,
+    priceAnnualTotal: null,
     priceDisplay: "Desde $1.2M",
     quotaThreshold: 100_000,
     dark: false,
