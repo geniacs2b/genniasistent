@@ -85,6 +85,8 @@ export async function POST(req: NextRequest) {
 
     // ── PASO 4: Calcular monto ───────────────────────────────────
     let amountInCents: number;
+    let finalCurrency = 'COP';
+    
     try {
       amountInCents = WompiService.getAmountCents(planKey, isAnnual);
     } catch (e: any) {
@@ -93,8 +95,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
-    const currency = 'COP';
-    console.log('[Checkout Wompi] PASO 4 amountInCents:', amountInCents, currency);
+    if (!amountInCents || amountInCents <= 0) {
+      const msg = `Monto de checkout inválido para el plan ${planKey}: ${amountInCents}`;
+      console.error('[Checkout Wompi] PASO 4 FALLO:', msg);
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
+    console.log('[Checkout Wompi] PASO 4 ─────────────────────────────');
+    console.log(`[Checkout Wompi] Detalle del Cobro:
+      - Plan:     ${planKey.toUpperCase()}
+      - Ciclo:    ${isAnnual ? 'Anual' : 'Mensual'}
+      - Monto:    ${amountInCents} centavos (${finalCurrency})
+      - Referencia de Auditoría generándose...`);
+    console.log('[Checkout Wompi] ──────────────────────────────────');
+
+    const currency = finalCurrency;
 
     // ── PASO 5: Generar referencia ───────────────────────────────
     const shortId   = tenantId.replace(/-/g, '').slice(0, 8);

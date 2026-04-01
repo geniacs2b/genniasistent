@@ -1,35 +1,43 @@
 import crypto from 'crypto';
-import type { PlanKey } from '@/lib/planConfig';
+import { PLANS, type PlanKey } from '@/lib/planConfig';
 
 // ─────────────────────────────────────────────────────────────────
 // Precios en COP (centavos de peso colombiano × 100)
 // amount_in_cents = precio_COP × 100
-// Ej: $95.000 COP → 9_500_000 centavos
-// Configurables via variables de entorno; los defaults son referencia.
+// Ej: $499.000 COP → 49_900_000 centavos
 // ─────────────────────────────────────────────────────────────────
-const COP = (priceCOP: number) => priceCOP * 100; // → centavos
+const COP = (priceCOP: number) => Math.round(priceCOP * 100); // → centavos
 
 function getPlanAmountCents(planKey: PlanKey, isAnnual: boolean): number {
-  // Prioridad: variable de entorno → default hardcoded
-  const env = (key: string, fallback: number) =>
-    parseInt(process.env[key] ?? String(fallback), 10);
-
-  switch (planKey) {
-    case 'starter':
-      return isAnnual
-        ? env('WOMPI_AMOUNT_STARTER_ANNUAL_CENTS',  COP(912_000))    // ~$228 USD/año
-        : env('WOMPI_AMOUNT_STARTER_MONTHLY_CENTS', COP(95_000));    // ~$25 USD/mes
-    case 'pro':
-      return isAnnual
-        ? env('WOMPI_AMOUNT_PRO_ANNUAL_CENTS',      COP(3_348_000))  // ~$828 USD/año
-        : env('WOMPI_AMOUNT_PRO_MONTHLY_CENTS',     COP(355_000));   // ~$89 USD/mes
-    case 'enterprise':
-      return isAnnual
-        ? env('WOMPI_AMOUNT_ENTERPRISE_ANNUAL_CENTS',  COP(9_480_000))  // ~$199/mes × 12 × 0.8 descuento
-        : env('WOMPI_AMOUNT_ENTERPRISE_MONTHLY_CENTS', COP(790_000));   // ~$199 USD/mes
-    default:
-      throw new Error(`[Wompi] Plan desconocido: ${planKey}`);
+  // 1. Obtener la fuente de verdad única de planConfig
+  const plan = PLANS.find(p => p.key === planKey);
+  
+  if (!plan) {
+    throw new Error(`[Wompi] Plan desconocido en configuración: ${planKey}`);
   }
+
+  // 2. Determinar precio base (COP)
+  // Prioridad: variable de entorno (opcional) → valor en planConfig
+  const envKey = `WOMPI_AMOUNT_${planKey.toUpperCase()}_${isAnnual ? 'ANNUAL' : 'MONTHLY'}_CENTS`;
+  const envOverride = process.env[envKey];
+  
+  if (envOverride) {
+    console.log(`[Wompi] Usando override de env para ${planKey}: ${envKey}`);
+    return parseInt(envOverride, 10);
+  }
+
+  const basePrice = isAnnual ? plan.priceAnnual : plan.priceMonthly;
+
+  if (basePrice === null || basePrice === undefined) {
+    // Si no hay precio (ej: Enterprise custom), lanzamos error para evitar checkout accidental de $0
+    throw new Error(`[Wompi] El plan ${planKey} (${isAnnual ? 'anual' : 'mensual'}) no tiene un precio definido para checkout automático.`);
+  }
+
+  const finalAmountCents = COP(basePrice);
+  
+  console.log(`[Wompi] Monto calculado para ${planKey}: $${basePrice} COP -> ${finalAmountCents} centavos`);
+  
+  return finalAmountCents;
 }
 
 // ─────────────────────────────────────────────────────────────────
