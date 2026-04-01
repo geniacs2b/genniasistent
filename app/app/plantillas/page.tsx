@@ -27,7 +27,7 @@ export default async function PlantillasPage() {
           </p>
         </div>
       </div>
-      <PlantillasClient initialTemplates={templates} events={events} />
+      <PlantillasClient initialTemplates={templates || []} events={events} />
     </div>
   );
 }
