@@ -192,7 +192,7 @@ export async function sendTestEmailAction(toEmail: string) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      `${getBaseUrl()}/api/oauth/google/callback`,
+      "https://gluqxwwroiqlqpqeckai.supabase.co/auth/v1/callback",
     );
     oauth2Client.setCredentials({ refresh_token: oauthConfig.refresh_token });
 

@@ -66,7 +66,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${next}`)
     }
 
-    console.error("[Auth Callback] exchangeCodeForSession error:", error.message)
+    if (error) {
+       console.error("[Auth Callback] exchangeCodeForSession error:", error.message)
+    }
   }
 
   // Error o sin code → redirigir al login con aviso
