@@ -155,7 +155,7 @@ async function handler(req: NextRequest) {
       `${persona?.nombres ?? ''} ${persona?.apellidos ?? ''}`.trim() ||
       delivery.email_to;
 
-    const publicBase = process.env.PUBLIC_BASE_URL ?? '';
+    const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
     const verificacionUrl = `${publicBase}/verificar?cert=${job_id}`;
 
     // Fecha del evento formateada para el correo (rango legible si hay dos fechas)

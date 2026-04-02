@@ -6,11 +6,13 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  // Verificación temporal de variables de entorno
-  console.log('[Google OAuth] Verificando variables de entorno:', {
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Configurado ✅' : 'Faltante ❌',
-    PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ? 'Configurado ✅' : 'Faltante ❌'
-  });
+    // Verificación de variables de entorno con fallback de seguridad
+    const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
+    
+    console.log('[Google OAuth] Iniciando generación de URL:', {
+      PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ? 'Configurado ✅' : 'Faltante -> Usando Fallback ⚠️',
+      BaseURL_Final: publicBase
+    });
 
   try {
     const cookieStore = cookies();
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      `${process.env.PUBLIC_BASE_URL}/api/oauth/google/callback`
+      `${publicBase}/api/oauth/google/callback`
     );
 
     // Scopes requeridos para mandar correos a nombre del usuario

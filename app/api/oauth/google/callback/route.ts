@@ -15,12 +15,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Parámetros inválidos de Google (Falta code o state)" }, { status: 400 });
     }
 
+    const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
     const tenantId = state;
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      `${process.env.PUBLIC_BASE_URL}/api/oauth/google/callback`
+      `${publicBase}/api/oauth/google/callback`
     );
 
     // 1. Intercambiar el código por los tokens
