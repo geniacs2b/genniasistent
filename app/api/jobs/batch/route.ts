@@ -13,10 +13,54 @@ export const dynamic = 'force-dynamic';
 // Esta ruta la llama el administrador desde la UI cuando clickea "Generar Lote"
 export async function POST(req: NextRequest) {
   try {
-    const { evento_id, tenant_id, participantes_ids } = await req.json();
+    const { evento_id, tenant_id: bodyTenantId, participantes_ids: bodyIds } = await req.json();
 
-    if (!evento_id || !tenant_id || !participantes_ids || participantes_ids.length === 0) {
-      return NextResponse.json({ error: "Parámetros insuficientes" }, { status: 400 });
+    if (!evento_id) {
+      return NextResponse.json({ error: "Parámetros insuficientes (evento_id requerido)" }, { status: 400 });
+    }
+
+    const supabase = createServerClient(
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { get() { return '' } } }
+    );
+
+    // 1. Obtener tenant_id si no viene
+    let tenant_id = bodyTenantId;
+    if (!tenant_id) {
+      const { data: ev, error: evErr } = await supabase
+        .from('eventos')
+        .select('tenant_id')
+        .eq('id', evento_id)
+        .single();
+      if (evErr || !ev) throw new Error("No se pudo encontrar el tenant del evento.");
+      tenant_id = ev.tenant_id;
+    }
+
+    // 2. Obtener participantes si no vienen (Criterio: Autorizados para certificado)
+    let participantes_ids = bodyIds;
+    if (!participantes_ids || participantes_ids.length === 0) {
+      console.log(`[Batch Engine] Buscando participantes autorizados para evento: ${evento_id}`);
+      
+      // Usamos el RPC que ya encapsula toda la lógica de asistencia y habilitaciones
+      const { data: statusList, error: stError } = await supabase
+        .rpc('obtener_estado_certificados_evento', { p_evento_id: evento_id });
+
+      if (stError) throw new Error(`Error invocando RPC: ${stError.message}`);
+
+      // Filtramos por aquellos que tienen 'enviar' o 'reenviar' en accion_boton
+      // Esto asegura que no enviemos a quienes no cumplen o ya tienen certificado enviado.
+      participantes_ids = (statusList as any[])
+        ?.filter(s => s.accion_boton === 'enviar' || s.accion_boton === 'reenviar')
+        ?.map(s => s.persona_id) || [];
+
+      if (participantes_ids.length === 0) {
+        return NextResponse.json({ 
+          success: true, 
+          message: "No hay participantes pendientes de certificación para este evento.",
+          count: 0 
+        });
+      }
     }
 
     // Validación preventiva de configuraciones de QStash
@@ -30,12 +74,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[QStash] Usando URL: ${process.env.QSTASH_URL}`);
 
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { get() { return '' } } }
-    );
+    // Reutilizamos el cliente supabase ya declarado arriba
 
     // 1. Verificar cuota disponible (Logging para debug)
     console.log(`[Batch Engine] Iniciando validación de cuota para tenant_id: ${tenant_id}`);

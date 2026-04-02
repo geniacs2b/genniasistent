@@ -271,14 +271,58 @@ async function handler(req: NextRequest) {
 
     console.log(`[Worker Email] ✅ Correo enviado a ${delivery.email_to} — Job ${job_id}`);
 
-    // 7. Marcar como enviado
-    await supabase.from('email_deliveries').update({
+    // 7. Marcar como enviado en la tabla de Motor Nativo
+    // Actualizamos antes de nada para asegurar que si algo falla después, el reintento sepa que ya se envió.
+    const { error: updateError } = await supabase.from('email_deliveries').update({
       status:        'sent',
       dispatched_at: new Date().toISOString(),
       error_log:     null,
     }).eq('id', delivery_id);
 
-    return NextResponse.json({ success: true, message: `Correo enviado a ${delivery.email_to}` });
+    if (updateError) {
+      console.warn(`[Worker Email] Error actualizando status de delivery: ${updateError.message}`);
+    }
+
+    // 8. SINCRONIZACIÓN CON TABLA LEGADA (Para Visibilidad en UI)
+    try {
+      const { data: inscripcion } = await supabase
+        .from('inscripciones')
+        .select('id')
+        .eq('evento_id', job.evento_id)
+        .eq('persona_id', job.persona_id)
+        .maybeSingle();
+
+      if (inscripcion) {
+        // Insertamos un registro de éxito para que el RPC obtener_estado_certificados_evento lo detecte
+        await supabase.from('envios_correo').insert({
+          evento_id:      job.evento_id,
+          persona_id:     job.persona_id,
+          inscripcion_id: inscripcion.id,
+          estado:         'enviado',
+          asunto_real:    asunto,
+          sent_at:        new Date().toISOString(),
+          proveedor_id:   'engine-v2', 
+          metadata: {
+             job_id: job_id,
+             delivery_id: delivery_id,
+             engine: 'native_v2'
+          }
+        });
+      }
+    } catch (syncErr: any) {
+      console.error(`[Worker Email] Error en sincronización legada (no crítico): ${syncErr.message}`);
+    }
+
+    // 9. DESCONTAR CONSUMO REAL
+    try {
+      console.log(`[Worker Email] Aplicando descuento de cuota (-1) para tenant: ${tenant_id}`);
+      await supabase.rpc('decrement_tenant_quota', { p_tenant_id: tenant_id, amount: 1 });
+    } catch (quotaErr: any) {
+      console.error(`[Worker Email] Error crítico descontando cuota: ${quotaErr.message}`);
+      // No lanzamos error para no reintentar el envío del correo (que ya fue exitoso)
+    }
+
+    return NextResponse.json({ success: true, message: `Certificado enviado con éxito a ${delivery.email_to}` });
 
   } catch (error: any) {
     console.error(`[Worker Email] Error retriable (${error.message}) — QStash reintentará.`);

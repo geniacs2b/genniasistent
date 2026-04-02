@@ -1,15 +1,12 @@
 export const automationService = {
   /**
-   * Dispara la automatización de generación de certificados en n8n
-   * Envía el evento_id al endpoint interno de la plataforma
+   * Dispara la automatización de generación de certificados en el Motor Nativo
    */
   async triggerCertificateGeneration(eventoId: string): Promise<{ ok: boolean; message: string }> {
     try {
-      const response = await fetch('/api/n8n/generar-certificados', {
+      const response = await fetch('/api/jobs/batch', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ evento_id: eventoId }),
       });
 
@@ -18,29 +15,29 @@ export const automationService = {
       if (!response.ok) {
         return {
           ok: false,
-          message: data.message || 'Error al conectar con el servicio de automatización',
+          message: data.error || data.message || 'Error en el motor nativo',
         };
       }
 
       return {
         ok: true,
-        message: data.message || 'Automatización iniciada correctamente',
+        message: 'Generación masiva iniciada.',
       };
     } catch (error: any) {
       console.error('Error in automationService:', error);
       return {
         ok: false,
-        message: 'No se pudo establecer comunicación con el servidor',
+        message: 'Error de conexión con el motor interno',
       };
     }
   },
 
   /**
-   * Dispara el envío de certificado individual (manual o reintento)
+   * Dispara el envío de certificado individual (Motor Nativo)
    */
   async triggerIndividualCertificate(eventoId: string, personaId: string, origen: string = 'manual'): Promise<{ ok: boolean; message: string }> {
     try {
-      const response = await fetch('/api/n8n/enviar-certificado-individual', {
+      const response = await fetch('/api/jobs/individual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -55,19 +52,19 @@ export const automationService = {
       if (!response.ok) {
         return {
           ok: false,
-          message: data.message || 'Error al conectar con el servicio de envío individual',
+          message: data.error || data.message || 'Error en el envío individual nativo',
         };
       }
 
       return {
         ok: true,
-        message: data.message || 'Envío individual iniciado correctamente',
+        message: 'Proceso de generación iniciado.',
       };
     } catch (error: any) {
       console.error('Error in automationService (individual):', error);
       return {
         ok: false,
-        message: 'No se pudo establecer comunicación con el servidor',
+        message: 'Error de conexión nativo',
       };
     }
   },
@@ -77,13 +74,14 @@ export const automationService = {
    */
   async triggerIndividualEmail(eventoId: string, personaId: string, origen: string = 'manual'): Promise<{ ok: boolean; message: string }> {
     try {
-      const response = await fetch('/api/n8n/enviar-correo-institucional', {
+      const response = await fetch('/api/jobs/individual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           evento_id: eventoId, 
           persona_id: personaId,
-          origen 
+          origen,
+          tipo: 'email_only'
         }),
       });
 
@@ -92,19 +90,19 @@ export const automationService = {
       if (!response.ok) {
         return {
           ok: false,
-          message: data.message || 'Error al conectar con el servicio de correo',
+          message: data.error || data.message || 'Error en el envío de correo nativo',
         };
       }
 
       return {
         ok: true,
-        message: data.message || 'Envío de correo iniciado correctamente',
+        message: 'Envío de correo nativo iniciado.',
       };
     } catch (error: any) {
       console.error('Error in automationService (email):', error);
       return {
         ok: false,
-        message: 'No se pudo establecer comunicación con el servidor de correo',
+        message: 'Error de conexión con el servidor nativo',
       };
     }
   },

@@ -121,9 +121,6 @@ async function handler(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq('id', job_id);
 
-    // Descontar cuota del tenant
-    await supabase.rpc('decrement_tenant_quota', { p_tenant_id: tenant_id, amount: 1 });
-
     // ────────────────────────────────────────────────────────────────────────
     // 6. Crear email delivery y encolar en QStash (Motor 2 — Envío)
     // ────────────────────────────────────────────────────────────────────────
