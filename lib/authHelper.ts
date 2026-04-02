@@ -6,11 +6,12 @@ import { createClient } from "./supabaseClient";
  */
 export async function signInWithGoogle() {
   const supabase = createClient();
-  const redirectTo = "https://genniasistent.vercel.app/auth/callback";
+  // Dominio raíz definitivo (sin paths por ahora para estabilidad)
+  const redirectTo = "https://genniasistent.vercel.app";
 
-  // Logs temporales de depuración solicitados
-  console.log("Iniciando login con Google...");
-  console.log("Redirect URL:", redirectTo);
+  // Logs temporales de depuración solicitados por el usuario
+  console.log("Login Google iniciado");
+  console.log("Redirect:", redirectTo);
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
