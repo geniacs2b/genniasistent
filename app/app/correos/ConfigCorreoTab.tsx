@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { saveEmailConfigAction, sendTestEmailAction } from "@/app/actions/emailActions";
+import { connectGmailWithSupabase } from "@/lib/authHelper";
 import {
   Save, Globe, Phone, Mail, MapPin as MapMarker, Facebook, Instagram, Linkedin, Twitter,
   Loader2, Info, CheckCircle2, XCircle, AlertCircle, Send, RefreshCw, Eye,
@@ -141,13 +142,14 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
                   <p className="text-xs text-slate-500 mt-0.5 capitalize">Proveedor: {oauthConfig.provider}</p>
                 </div>
               </div>
-              <a
-                href="/api/oauth/google"
+              <Button
+                type="button"
+                onClick={() => connectGmailWithSupabase()}
                 className="shrink-0 flex items-center gap-2 h-10 px-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-sm rounded-xl font-bold transition-all text-slate-700 dark:text-slate-300 text-sm"
               >
                 <RefreshCw className="w-4 h-4" />
                 Reconectar
-              </a>
+              </Button>
             </div>
           ) : (
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -158,8 +160,9 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Los certificados no podrán ser enviados por correo hasta que conectes una cuenta.</p>
                 </div>
               </div>
-              <a
-                href="/api/oauth/google"
+              <Button
+                type="button"
+                onClick={() => connectGmailWithSupabase()}
                 className="shrink-0 flex items-center gap-2 h-10 px-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-sm rounded-xl font-bold transition-all text-slate-700 dark:text-slate-300 text-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -169,7 +172,7 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
                 Conectar cuenta Google
-              </a>
+              </Button>
             </div>
           )}
 
