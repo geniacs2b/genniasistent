@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { getBaseUrl } from "@/lib/authHelper";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-    // Verificación de variables de entorno con fallback de seguridad
-    const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
+    // Verificación de variables de entorno con fallback de seguridad robusto
+    const publicBase = getBaseUrl();
     
     console.log('[Google OAuth] Iniciando generación de URL:', {
-      PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ? 'Configurado ✅' : 'Faltante -> Usando Fallback ⚠️',
       BaseURL_Final: publicBase
     });
 

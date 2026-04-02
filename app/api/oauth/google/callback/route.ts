@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { getBaseUrl } from "@/lib/authHelper";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Parámetros inválidos de Google (Falta code o state)" }, { status: 400 });
     }
 
-    const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
+    const publicBase = getBaseUrl();
     const tenantId = state;
 
     const oauth2Client = new google.auth.OAuth2(
