@@ -35,11 +35,10 @@ export async function generatePDF(
 
     browser = await puppeteer.launch({
       args: chromium.args,
-      // chromium.defaultViewport es undefined en v130+; usar null para no sobreescribir el viewport por página
-      defaultViewport: chromium.defaultViewport ?? null,
+      // @sparticuz/chromium v130+ ya no exporta defaultViewport.
+      // null = no sobreescribir; el viewport se establece por página con page.setViewport().
+      defaultViewport: null,
       executablePath: executablePath || process.env.CHROME_BIN,
-      // chromium.headless es undefined en @sparticuz/chromium v130+.
-      // En puppeteer-core v24, headless:true activa el nuevo Headless Mode (recomendado).
       headless: true,
     });
 
