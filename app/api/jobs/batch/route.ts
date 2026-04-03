@@ -168,17 +168,21 @@ export async function POST(req: NextRequest) {
     // QStash Fan-Out: Enviamos todo a la cola para Worker de PDFs
     const publicBaseUrl = process.env.PUBLIC_BASE_URL;
 
+    console.log(`[Batch Engine] Iniciando Fan-out para ${insertedJobs.length} trabajos.`);
+    console.log(`[Batch Engine] URL Base Detectada: ${publicBaseUrl}`);
+
     // Validación de Runtime requerida
-    if (!publicBaseUrl || !publicBaseUrl.startsWith("https://") || publicBaseUrl.includes("localhost") || publicBaseUrl.includes("127.0.0.1")) {
-      console.error("[Batch Engine] Error: PUBLIC_BASE_URL inválida o no configurada para producción:", publicBaseUrl);
-      throw new Error(`Configuración de red incompleta: Se requiere PUBLIC_BASE_URL con HTTPS y dominio real. Actual: ${publicBaseUrl}`);
+    if (!publicBaseUrl || !publicBaseUrl.startsWith("https://") || publicBaseUrl.includes("localhost")) {
+      console.error("[Batch Engine] Error: PUBLIC_BASE_URL inválida para QStash:", publicBaseUrl);
+      throw new Error(`Configuración de red incompleta: Se requiere PUBLIC_BASE_URL con HTTPS real. Actual: ${publicBaseUrl}`);
     }
 
-    console.log(`[Batch Engine] Fan-out hacia: ${publicBaseUrl}/api/workers/generate-certificate`);
+    const workerUrl = `${publicBaseUrl}/api/workers/generate-certificate`;
+    console.log(`[Batch Engine] Destino QStash: ${workerUrl}`);
 
     // Batch JSON para mandarlos a QStash
     const eventsToPublish = insertedJobs.map((job) => ({
-        url: `${publicBaseUrl}/api/workers/generate-certificate`,
+        url: workerUrl,
         body: JSON.stringify({
             tenant_id: tenant_id,
             batch_id:  batch.id,
@@ -190,19 +194,19 @@ export async function POST(req: NextRequest) {
     }));
 
     // QStash publishJSON acepta lotes para no matar los rate limits
-    console.log(`[Batch Engine] Publicando ${eventsToPublish.length} trabajos a QStash hacia: ${publicBaseUrl}/api/workers/generate-certificate`);
+    console.log(`[Batch Engine] Publicando lote de ${eventsToPublish.length} eventos a QStash...`);
     
     try {
         const qstashResponse = await qstash.batchJSON(eventsToPublish);
-        console.log(`[Batch Engine] QStash aceptó los mensajes. IDs:`, qstashResponse.map(msg => msg.messageId).slice(0, 5), "...");
+        console.log(`[Batch Engine] QStash aceptó los mensajes. Primeros IDs:`, qstashResponse.map(msg => msg.messageId).slice(0, 3));
         
-        // Sincronización final del batch inicial
+        // Sincronización final: El batch se queda en 'pending' hasta que el primer worker lo pase a 'processing'
         await supabase.from('certificate_batches').update({ status: 'pending' }).eq('id', batch.id);
+        console.log(`[Batch Engine] Lote ${batch.id} sincronizado como 'pending'.`);
 
     } catch (qstashError: any) {
         console.error("[Batch Engine] Error crítico de comunicación con QStash:", qstashError.message);
-        console.error("[Batch Engine] Stack Trace:", qstashError.stack);
-        throw new Error(`Fallo en comunicación con Upstash: ${qstashError.message}`);
+        throw new Error(`Fallo en comunicación con QStash: ${qstashError.message}`);
     }
 
     return NextResponse.json({

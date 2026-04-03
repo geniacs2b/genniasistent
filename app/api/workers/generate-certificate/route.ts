@@ -20,7 +20,7 @@ async function syncBatchProgress(supabase: any, batchId: string) {
 
   if (!counts) return;
 
-  const processed = counts.filter((j: any) => j.status === 'generated' || j.status === 'failed').length;
+  const processed = counts.filter((j: any) => j.status === 'completed' || j.status === 'failed').length;
   const errors    = counts.filter((j: any) => j.status === 'failed').length;
   const isDone    = processed >= counts.length;
 
@@ -36,7 +36,7 @@ async function syncBatchProgress(supabase: any, batchId: string) {
     nextStatus = 'processing';
   }
 
-  console.log(`[Batch Sync] Actualizando Lote ${batchId} | Status: ${nextStatus}`);
+  console.log(`[Batch Sync] Intentando actualizar Lote ${batchId} a status: ${nextStatus}`);
 
   const { error: syncError } = await supabase
     .from('certificate_batches')
@@ -48,7 +48,7 @@ async function syncBatchProgress(supabase: any, batchId: string) {
     .eq('id', batchId);
 
   if (syncError) {
-    console.error(`[Batch Sync] Error actualizando batch ${batchId}: ${syncError.message}`);
+    console.error(`[Batch Sync] Error DB al actualizar batch ${batchId}: ${syncError.message}`);
   }
 }
 
@@ -58,13 +58,24 @@ async function handler(req: NextRequest) {
   let active_batch_id:  string | undefined;
 
   try {
-    const { tenant_id, batch_id, job_id, evento_id, participante_id } = await req.json();
+    // 0. CANARIO DE CONECTIVIDAD: Lo primero es capturar que algo llegó
+    console.log(`[Worker] ⚡ Petición detectada en el endpoint.`);
 
+    const bodyText = await req.text();
+    let body: any;
+    try {
+        body = JSON.parse(bodyText);
+    } catch (e) {
+        console.error(`[Worker] Error parseando JSON: ${bodyText}`);
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const { tenant_id, batch_id, job_id, evento_id, participante_id } = body;
     active_job_id    = job_id;
     active_tenant_id = tenant_id;
     active_batch_id  = batch_id;
 
-    console.log(`[Worker Generador] 📨 Petición recibida: Job=${job_id} | Batch=${batch_id ?? 'indiv'}`);
+    console.log(`[Worker] 📨 Datos: Job=${job_id} | Batch=${batch_id ?? 'indiv'} | Part=${participante_id}`);
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,36 +83,37 @@ async function handler(req: NextRequest) {
       { cookies: { get() { return ''; } } },
     );
 
-    // 0. REGISTRAR INTENTO (Para que el usuario vea que algo está pasando)
-    console.log(`[Worker Generador] 📨 Petición recibida. Incrementando intentos para Job: ${job_id}`);
-    
+    // 1. REGISTRAR INTENTO INMEDIATAMENTE
+    console.log(`[Worker] Registrando incremento de intentos para: ${job_id}`);
     try {
         const { error: rpcError } = await supabase.rpc('increment_job_attempts', { p_job_id: job_id });
         if (rpcError) {
-            console.warn(`[Worker Generador] RPC increment_job_attempts falló o no existe. Usando fallback manual.`);
-            const { data: jobData } = await supabase.from('certificate_jobs').select('attempts').eq('id', job_id).single();
+            const { data: currentJob } = await supabase.from('certificate_jobs').select('attempts').eq('id', job_id).single();
             await supabase.from('certificate_jobs').update({ 
-                attempts: (jobData?.attempts || 0) + 1,
+                attempts: (currentJob?.attempts || 0) + 1,
                 updated_at: new Date().toISOString()
             }).eq('id', job_id);
         }
     } catch (e: any) {
-        console.error(`[Worker Generador] Error al registrar intento: ${e.message}`);
+        console.error(`[Worker] Fallo crítico al incrementar intentos: ${e.message}`);
     }
 
-    // 1. Marcar como "Generando" e informar al Lote que iniciamos (si aplica)
-    console.log(`[Worker Generador] Cambiando status a 'generating' para Job: ${job_id}`);
-    await supabase.from('certificate_jobs').update({ status: 'generating' }).eq('id', job_id);
+    // 2. CAMBIO DE ESTADO A 'processing' (Confirmado como válido por el usuario)
+    console.log(`[Worker] Cambiando status de job ${job_id} a 'processing'`);
+    const { error: statusError } = await supabase.from('certificate_jobs').update({ status: 'processing' }).eq('id', job_id);
+    if (statusError) {
+        console.error(`[Worker] Error DB al cambiar status a 'processing': ${statusError.message}`);
+        throw new Error(`Error de base de datos (Check Constraint?): ${statusError.message}`);
+    }
 
     if (active_batch_id) {
-       // Sincronización proactiva para cambiar de 'pending' to 'processing'
        await syncBatchProgress(supabase, active_batch_id);
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // 2. Renderizar HTML con datos reales de la plantilla
+    // 3. Renderizar HTML con datos reales de la plantilla
     // ────────────────────────────────────────────────────────────────────────
-    console.log(`[Worker Generador] Renderizando plantilla: participante=${participante_id} evento=${evento_id}`);
+    console.log(`[Worker] Renderizando plantilla: participante=${participante_id} evento=${evento_id}`);
 
     const { html, width_px, height_px, codigo_certificado } = await buildCertificateHtml({
       job_id,
@@ -154,13 +166,18 @@ async function handler(req: NextRequest) {
     console.log(`[Storage] URL pública: ${pdfUrl}`);
 
     // ────────────────────────────────────────────────────────────────────────
-    // 5. Guardar URL y marcar job como generado
+    // 5. Guardar URL y marcar job como completado
     // ────────────────────────────────────────────────────────────────────────
-    await supabase.from('certificate_jobs').update({
-      status:     'generated',
+    console.log(`[Worker] Marcando job ${job_id} como 'completed'`);
+    const { error: doneError } = await supabase.from('certificate_jobs').update({
+      status:     'completed',
       pdf_url:    pdfUrl,
       updated_at: new Date().toISOString(),
     }).eq('id', job_id);
+
+    if (doneError) {
+        console.error(`[Worker] Error DB al marcar como 'completed': ${doneError.message}`);
+    }
 
     // ────────────────────────────────────────────────────────────────────────
     // 6. Crear email delivery y encolar en QStash (Motor 2 — Envío)
@@ -172,7 +189,7 @@ async function handler(req: NextRequest) {
       .single();
 
     if (!persona?.correo) {
-      console.warn(`[Worker Generador] ⚠️ Persona ${participante_id} no tiene correo — PDF generado sin entrega de email.`);
+      console.warn(`[Worker] ⚠️ Persona ${participante_id} no tiene correo — PDF generado sin entrega de email.`);
     } else {
       const { data: delivery, error: delError } = await supabase
         .from('email_deliveries')
@@ -186,11 +203,11 @@ async function handler(req: NextRequest) {
         .single();
 
       if (delError) {
-        console.error('[Worker Generador] Error creando email_delivery:', delError.message);
+        console.error('[Worker] Error creando email_delivery:', delError.message);
       } else if (delivery) {
         const publicBaseUrl = process.env.PUBLIC_BASE_URL;
         if (!publicBaseUrl || !publicBaseUrl.startsWith('https://') || publicBaseUrl.includes('localhost')) {
-          throw new Error('[Worker Generador] PUBLIC_BASE_URL inválida para producción — no se puede encolar email.');
+          throw new Error('[Worker] PUBLIC_BASE_URL inválida para producción — no se puede encolar email.');
         }
 
         await qstash.publishJSON({
@@ -199,7 +216,7 @@ async function handler(req: NextRequest) {
           retries: 3,
         });
 
-        console.log(`[Worker Generador] Email encolado para ${persona.correo} | delivery=${delivery.id}`);
+        console.log(`[Worker] Email encolado para ${persona.correo} | delivery=${delivery.id}`);
       }
     }
 
@@ -210,7 +227,7 @@ async function handler(req: NextRequest) {
       await syncBatchProgress(supabase, active_batch_id);
     }
 
-    console.log(`[Worker Generador] ✅ Job ${job_id} completado | código: ${codigo_certificado} | PDF: ${pdfUrl}`);
+    console.log(`[Worker] ✅ Job ${job_id} completado con éxito.`);
 
     return NextResponse.json({
       success: true,
@@ -220,7 +237,7 @@ async function handler(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error(`[Worker Generador] ❌ Error crítico (Job=${active_job_id ?? '?'}): ${error.message}`);
+    console.error(`[Worker] ❌ Error crítico (Job=${active_job_id ?? '?'}): ${error.message}`);
 
     if (active_job_id) {
       const supabase = createServerClient(
@@ -230,8 +247,8 @@ async function handler(req: NextRequest) {
       );
 
       await supabase.from('certificate_jobs').update({
-        status:    'failed',
-        error_log: error.message,
+        status:     'failed',
+        last_error: error.message,
       }).eq('id', active_job_id);
 
       if (active_batch_id) {
