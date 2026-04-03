@@ -40,14 +40,18 @@ export interface CertificateEmailData {
   nombre_evento: string;
   /** Fecha del evento (ya formateada) */
   fecha_evento?: string;
-  /** URL pública del PDF del certificado */
+  /** URL pública del PDF del certificado (también se usa en el botón de descarga) */
   pdf_url: string;
   /** Código legible del certificado */
   codigo_certificado: string;
   /** URL de verificación del certificado */
   verificacion_url?: string;
-  /** Mensaje personalizado adicional (opcional) */
-  mensaje_extra?: string;
+  /**
+   * HTML personalizado del cuerpo del mensaje (ya con placeholders resueltos).
+   * Si se provee, reemplaza el párrafo estático de "Con mucho gusto...".
+   * Si no se provee, se usa el texto por defecto.
+   */
+  cuerpo_html?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +75,21 @@ function socialLink(url: string | null | undefined, network: keyof typeof SOCIAL
     <a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 6px;text-decoration:none;">
       ${SOCIAL_ICONS[network]}
     </a>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILIDAD: reemplazo de placeholders {{clave}} en una cadena de texto / HTML
+// Soporta: {{nombre_completo}}, {{nombre_participante}}, {{evento_titulo}},
+//          {{codigo_certificado}}, {{url_descarga}}, {{url_verificacion}}, etc.
+// ─────────────────────────────────────────────────────────────────────────────
+export function resolvePlaceholders(
+  template: string,
+  vars: Record<string, string>,
+): string {
+  return Object.entries(vars).reduce(
+    (str, [key, val]) => str.replaceAll(key, val ?? ''),
+    template,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,10 +168,12 @@ export function buildCertificateEmail(
                 ${escapeHtml(data.nombre_completo)}
               </h1>
 
-              <!-- Mensaje -->
-              <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.7;">
-                Con mucho gusto te informamos que has completado exitosamente tu participación en:
-              </p>
+              <!-- Mensaje: personalizado desde evento/plantilla o texto por defecto -->
+              ${data.cuerpo_html
+                ? `<div style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.7;">${data.cuerpo_html}</div>`
+                : `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.7;">
+                     Con mucho gusto te informamos que has completado exitosamente tu participación en:
+                   </p>`}
 
               <!-- Evento destacado -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -164,10 +185,6 @@ export function buildCertificateEmail(
                   </td>
                 </tr>
               </table>
-
-              ${data.mensaje_extra
-                ? `<p style="margin:24px 0 0;font-size:14px;color:#4B5563;line-height:1.7;font-style:italic;padding:16px;background:#F9FAFB;border-radius:10px;">${escapeHtml(data.mensaje_extra)}</p>`
-                : ''}
             </td>
           </tr>
 
