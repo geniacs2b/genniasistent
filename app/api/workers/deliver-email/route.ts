@@ -97,9 +97,10 @@ async function handler(req: NextRequest) {
     }
 
     // 2. Obtener job con campos necesarios para el correo
+    // codigo_certificado no existe en certificate_jobs — se deriva de job_id si se necesita
     const { data: job } = await supabase
       .from('certificate_jobs')
-      .select('pdf_url, evento_id, participante_id, codigo_certificado')
+      .select('pdf_url, evento_id, participante_id')
       .eq('id', job_id)
       .single();
 
@@ -171,12 +172,15 @@ async function handler(req: NextRequest) {
         : fmt(evento.fecha_inicio);
     }
 
+    // codigo_certificado no existe en certificate_jobs — se deriva del job_id
+    const codigoCert = `CERT-${job_id.replace(/-/g, '').slice(0, 10).toUpperCase()}`;
+
     const emailData: CertificateEmailData = {
       nombre_completo:    nombreCompleto,
       nombre_evento:      evento?.titulo ?? 'Evento',
       fecha_evento:       fechaEvento,
       pdf_url:            job.pdf_url,
-      codigo_certificado: job.codigo_certificado ?? job_id,
+      codigo_certificado: codigoCert,
       verificacion_url:   verificacionUrl,
     };
 
@@ -229,7 +233,7 @@ async function handler(req: NextRequest) {
       subject:     asunto,
       htmlBody,
       pdfBuffer,
-      pdfFilename: `certificado_${(job.codigo_certificado ?? job_id).replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`,
+      pdfFilename: `certificado_${codigoCert.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`,
     });
 
     // Gmail requiere base64url (sin padding =)
@@ -283,10 +287,11 @@ async function handler(req: NextRequest) {
       console.warn(`[Worker Email] Error actualizando status de delivery: ${updateError.message}`);
     }
 
-    // 7b. Actualizar certificate_jobs a 'sent' (estado final en schema real)
+    // 7b. Actualizar certificate_jobs a 'sent' y marcar email_sent=true (schema real)
+    // NO incluir updated_at — columna no existe en certificate_jobs
     const { error: jobSentError } = await supabase.from('certificate_jobs').update({
       status:     'sent',
-      updated_at: new Date().toISOString(),
+      email_sent: true,
     }).eq('id', job_id);
 
     if (jobSentError) {

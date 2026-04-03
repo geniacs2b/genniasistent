@@ -238,12 +238,29 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
     throw new Error(`${prefix} Error cargando campos de plantilla: ${camposErr.message}`);
   }
 
-  const camposList: CampoPlantilla[] = campos ?? [];
+  // ── Normalizar nombres de columna: DB real → interfaz interna ───────────
+  // La tabla plantilla_campos_certificado usa:  posicion_x, posicion_y, ancho_caja, alto_caja
+  // El renderer usa internamente:               pos_x,      pos_y,      width,      height
+  // Sin esta normalización los estilos quedan "undefinedpx" y los campos no se ven.
+  const camposList: CampoPlantilla[] = (campos ?? []).map((raw: any) => {
+    const normalized: CampoPlantilla = {
+      ...raw,
+      pos_x:  raw.posicion_x  ?? raw.pos_x  ?? 0,
+      pos_y:  raw.posicion_y  ?? raw.pos_y  ?? 0,
+      width:  raw.ancho_caja  ?? raw.width  ?? 100,
+      height: raw.alto_caja   ?? raw.height ?? 50,
+    };
+    console.log(
+      `${prefix} [Campo raw] tipo=${raw.tipo_campo} | posicion_x=${raw.posicion_x} posicion_y=${raw.posicion_y} ancho_caja=${raw.ancho_caja} alto_caja=${raw.alto_caja}` +
+      ` → [normalizado] pos_x=${normalized.pos_x} pos_y=${normalized.pos_y} width=${normalized.width} height=${normalized.height}`,
+    );
+    return normalized;
+  });
 
   if (camposList.length === 0) {
     console.warn(`${prefix} ⚠️ La plantilla "${plantilla.nombre}" no tiene campos configurados — el certificado sólo mostrará la imagen de fondo.`);
   } else {
-    console.log(`${prefix} ${camposList.length} campo(s) cargados de plantilla "${plantilla.nombre}".`);
+    console.log(`${prefix} ${camposList.length} campo(s) cargados y normalizados de plantilla "${plantilla.nombre}".`);
   }
 
   // ── 5. Construir diccionario de variables ────────────────────────────────
@@ -340,13 +357,15 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
         console.warn(`${prefix} ⚠️ tipo_campo="${campo.tipo_campo}" tiene valor vacío para esta persona/evento.`);
       }
 
-      const fontSizePx   = campo.font_size      ?? 24;
-      const lineHeight   = campo.line_height     ?? 1.2;
-      const letterSpacing = campo.letter_spacing ?? 0;
-      const fontFamily   = campo.font_family     || 'Arial';
-      const fontWeight   = campo.font_weight     || 'normal';
-      const color        = campo.color           || '#000000';
-      const textAlign    = campo.text_align      || 'left';
+      console.log(`${prefix} [Valor] tipo_campo="${campo.tipo_campo}" → valor="${valor.slice(0, 80)}"`);
+
+      const fontSizePx    = campo.font_size      ?? 24;
+      const lineHeight    = campo.line_height     ?? 1.2;
+      const letterSpacing = campo.letter_spacing  ?? 0;
+      const fontFamily    = campo.font_family     || 'Arial';
+      const fontWeight    = campo.font_weight     || 'normal';
+      const color         = campo.color           || '#000000';
+      const textAlign     = campo.text_align      || 'left';
 
       const justify = textAlign === 'center' ? 'center'
                     : textAlign === 'right'  ? 'flex-end'
@@ -369,6 +388,8 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
         `word-break: break-word`,
         `white-space: normal`,
       ].join('; ');
+
+      console.log(`${prefix} [Estilo] tipo_campo="${campo.tipo_campo}" → ${baseStyle}`);
 
       const escapedValue = valor
         .replace(/&/g, '&amp;')
@@ -439,10 +460,17 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
 </body>
 </html>`;
 
-  // Tabla de resumen de campos renderizados para trazabilidad
+  // ── Validación del HTML final antes de enviarlo a generatePDF ───────────
   const rendered   = camposList.filter(c => c.visible !== false);
   const tiposOk    = rendered.map(c => c.tipo_campo).join(', ');
-  console.log(`${prefix} ✅ HTML generado: ${rendered.length} campo(s) [${tiposOk}] | Persona: "${nombreCompleto}" | Evento: "${evento.titulo}" | Código: ${codigo}`);
+  const hasUndefinedPx = html.includes('undefinedpx');
+  if (hasUndefinedPx) {
+    // Detectar qué campos tienen coordenadas inválidas
+    const badCampos = rendered.filter(c => c.pos_x === undefined || c.pos_y === undefined || c.width === undefined || c.height === undefined);
+    console.error(`${prefix} ❌ HTML contiene "undefinedpx" — ${badCampos.length} campo(s) con coordenadas inválidas: ${badCampos.map(c => c.tipo_campo).join(', ')}`);
+    throw new Error(`${prefix} HTML inválido: coordenadas "undefinedpx" detectadas. Revisar normalización de columnas (posicion_x/ancho_caja).`);
+  }
+  console.log(`${prefix} ✅ HTML válido: ${html.length} chars | ${rendered.length} campo(s) [${tiposOk}] | Persona: "${nombreCompleto}" | Evento: "${evento.titulo}" | Código: ${codigo}`);
 
   return {
     html,
