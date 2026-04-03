@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     }));
 
     // QStash publishJSON acepta lotes para no matar los rate limits
-    console.log(`[Batch Engine] Publicando ${eventsToPublish.length} trabajos a QStash...`);
+    console.log(`[Batch Engine] Publicando ${eventsToPublish.length} trabajos a QStash hacia: ${publicBaseUrl}/api/workers/generate-certificate`);
     
     try {
         const qstashResponse = await qstash.batchJSON(eventsToPublish);
@@ -201,6 +201,7 @@ export async function POST(req: NextRequest) {
 
     } catch (qstashError: any) {
         console.error("[Batch Engine] Error crítico de comunicación con QStash:", qstashError.message);
+        console.error("[Batch Engine] Stack Trace:", qstashError.stack);
         throw new Error(`Fallo en comunicación con Upstash: ${qstashError.message}`);
     }
 

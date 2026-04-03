@@ -57,7 +57,17 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname;
+  const searchParams = request.nextUrl.searchParams;
   
+  // Detect internal Next.js / RSC requests
+  // Next.js uses RSC header, _rsc query param, or text/x-component Accept header
+  const isRSCRequest = request.headers.get('RSC') === '1' || searchParams.has('_rsc');
+  const isPrefetch = request.headers.get('Next-Router-Prefetch') === '1';
+  const isComponentFetch = request.headers.get('Accept')?.includes('text/x-component');
+
+  // Skip redirect logic for internal Next.js data requests
+  const isDataRequest = isRSCRequest || isPrefetch || isComponentFetch;
+
   // API requests, auth callback, and internal paths bypass strict UI routing
   if (
     pathname.startsWith('/api') ||
@@ -74,31 +84,34 @@ export async function middleware(request: NextRequest) {
 
   const tenantId = user?.app_metadata?.tenant_id;
 
-  // 1. Proteger panel de administración (/app)
-  if (isAppRoute) {
-    if (!user) return NextResponse.redirect(new URL('/login', request.url));
-    // Sin tenant: fallback al onboarding (usuarios legacy sin tenant)
-    if (!tenantId) return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
-  }
-
-  // 2. Proteger Onboarding (/onboarding) — flujo legacy, solo si no tienen tenant aún
-  if (isOnboardingRoute) {
-    if (!user) return NextResponse.redirect(new URL('/login', request.url));
-    if (tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
-  }
-
-  // 3. Bloquear rutas de auth a usuarios ya autenticados con tenant
-  if (isAuthRoute) {
-    if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
-    // Usuario autenticado sin tenant: deja pasar a /registro, redirige al onboarding desde otros
-    if (user && !tenantId && pathname !== '/registro') {
-      return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
+  // Redirección Selectiva: Solo si es una petición de navegación completa (Documento HTML)
+  // No interrumpimos peticiones RSC/Prefetch con un redirect 302/307 a una página HTML
+  // Esto evita el error "Failed to fetch RSC payload" y problemas de CORS en pre-fetching
+  if (!isDataRequest) {
+    // 1. Proteger panel de administración (/app)
+    if (isAppRoute) {
+      if (!user) return NextResponse.redirect(new URL('/login', request.url));
+      if (!tenantId) return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
     }
-  }
 
-  // Landing page redirect para usuarios autenticados
-  if (pathname === '/') {
-    if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+    // 2. Proteger Onboarding (/onboarding)
+    if (isOnboardingRoute) {
+      if (!user) return NextResponse.redirect(new URL('/login', request.url));
+      if (tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+    }
+
+    // 3. Bloquear rutas de auth a usuarios ya autenticados con tenant
+    if (isAuthRoute) {
+      if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+      if (user && !tenantId && pathname !== '/registro') {
+        return NextResponse.redirect(new URL('/onboarding/setup-empresa', request.url));
+      }
+    }
+
+    // Landing page redirect para usuarios autenticados
+    if (pathname === '/') {
+      if (user && tenantId) return NextResponse.redirect(new URL('/app/dashboard', request.url));
+    }
   }
 
   return supabaseResponse
