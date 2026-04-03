@@ -171,8 +171,10 @@ export async function POST(req: NextRequest) {
     // Validación de Runtime requerida
     if (!publicBaseUrl || !publicBaseUrl.startsWith("https://") || publicBaseUrl.includes("localhost") || publicBaseUrl.includes("127.0.0.1")) {
       console.error("[Batch Engine] Error: PUBLIC_BASE_URL inválida o no configurada para producción:", publicBaseUrl);
-      throw new Error("Configuración de red incompleta: Se requiere PUBLIC_BASE_URL con HTTPS y dominio real.");
+      throw new Error(`Configuración de red incompleta: Se requiere PUBLIC_BASE_URL con HTTPS y dominio real. Actual: ${publicBaseUrl}`);
     }
+
+    console.log(`[Batch Engine] Fan-out hacia: ${publicBaseUrl}/api/workers/generate-certificate`);
 
     // Batch JSON para mandarlos a QStash
     const eventsToPublish = insertedJobs.map((job) => ({
@@ -188,14 +190,18 @@ export async function POST(req: NextRequest) {
     }));
 
     // QStash publishJSON acepta lotes para no matar los rate limits
-    console.log(`[QStash] Intentando publicar ${eventsToPublish.length} eventos a QStash...`);
+    console.log(`[Batch Engine] Publicando ${eventsToPublish.length} trabajos a QStash...`);
     
     try {
         const qstashResponse = await qstash.batchJSON(eventsToPublish);
-        console.log(`[QStash] Publicación exitosa. Message IDs retornados: ${qstashResponse.length}`);
+        console.log(`[Batch Engine] QStash aceptó los mensajes. IDs:`, qstashResponse.map(msg => msg.messageId).slice(0, 5), "...");
+        
+        // Sincronización final del batch inicial
+        await supabase.from('certificate_batches').update({ status: 'pending' }).eq('id', batch.id);
+
     } catch (qstashError: any) {
-        console.error("[QStash] Error de autenticación o red:", qstashError.message);
-        throw new Error(`Fallo en comunicación con QStash: ${qstashError.message}`);
+        console.error("[Batch Engine] Error crítico de comunicación con QStash:", qstashError.message);
+        throw new Error(`Fallo en comunicación con Upstash: ${qstashError.message}`);
     }
 
     return NextResponse.json({

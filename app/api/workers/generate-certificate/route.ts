@@ -64,7 +64,7 @@ async function handler(req: NextRequest) {
     active_tenant_id = tenant_id;
     active_batch_id  = batch_id;
 
-    console.log(`[Worker Generador] Iniciando: Batch=${batch_id ?? 'individual'} | Job=${job_id}`);
+    console.log(`[Worker Generador] 📨 Petición recibida: Job=${job_id} | Batch=${batch_id ?? 'indiv'}`);
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,7 +72,12 @@ async function handler(req: NextRequest) {
       { cookies: { get() { return ''; } } },
     );
 
+    // 0. REGISTRAR INTENTO (Para que el usuario vea que algo está pasando)
+    console.log(`[Worker Generador] Incrementando intentos para Job: ${job_id}`);
+    await supabase.rpc('increment_job_attempts', { p_job_id: job_id });
+
     // 1. Marcar como "Generando" e informar al Lote que iniciamos (si aplica)
+    console.log(`[Worker Generador] Cambiando status a 'generating' para Job: ${job_id}`);
     await supabase.from('certificate_jobs').update({ status: 'generating' }).eq('id', job_id);
 
     if (active_batch_id) {
