@@ -70,8 +70,8 @@ export default async function BatchDetailPage({ params }: { params: { batchId: s
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-6">
-      {/* Auto-refresh mientras el batch esté activo */}
-      {batch.status === 'in_progress' && <BatchRefresher intervalMs={5000} />}
+      {/* Auto-refresh mientras el batch esté activo (pending o processing) */}
+      {(batch.status === 'pending' || batch.status === 'processing') && <BatchRefresher intervalMs={5000} />}
 
       {/* Header y Back Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -83,9 +83,9 @@ export default async function BatchDetailPage({ params }: { params: { batchId: s
             </Link>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Auditoría del Lote</h1>
-              {batch.status === 'in_progress' && (
+              {(batch.status === 'pending' || batch.status === 'processing') && (
                 <span className="flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full animate-pulse">
-                  <RefreshCw className="w-3 h-3 animate-spin" /> EN VIVO
+                  <RefreshCw className="w-3 h-3 animate-spin" /> EN VIVO ({batch.status === 'pending' ? 'EN COLA' : 'PROCESANDO'})
                 </span>
               )}
             </div>

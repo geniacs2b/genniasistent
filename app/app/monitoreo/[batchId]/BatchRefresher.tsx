@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Refresca la página del batch en intervalos mientras el status sea in_progress.
+ * Refresca la página del batch en intervalos mientras el status sea activo (pending/processing).
  * Se monta solo cuando el servidor detecta que el batch está activo.
  */
 export function BatchRefresher({ intervalMs = 5000 }: { intervalMs?: number }) {

@@ -24,14 +24,32 @@ async function syncBatchProgress(supabase: any, batchId: string) {
   const errors    = counts.filter((j: any) => j.status === 'failed').length;
   const isDone    = processed >= counts.length;
 
-  await supabase
+  console.log(`[Batch Sync] Lote ${batchId} | Procesados: ${processed}/${counts.length} | Errores: ${errors}`);
+
+  // 1. Obtener estado actual
+  const { data: currentBatch } = await supabase.from('certificate_batches').select('status').eq('id', batchId).single();
+
+  let nextStatus = currentBatch?.status;
+  if (isDone) {
+    nextStatus = errors === counts.length ? 'failed' : 'completed';
+  } else if (currentBatch?.status === 'pending' && processed > 0) {
+    nextStatus = 'processing';
+  }
+
+  console.log(`[Batch Sync] Actualizando Lote ${batchId} | Status: ${nextStatus}`);
+
+  const { error: syncError } = await supabase
     .from('certificate_batches')
     .update({
       total_processed: processed,
       total_errors:    errors,
-      ...(isDone ? { status: errors === counts.length ? 'failed' : 'completed' } : {}),
+      status:          nextStatus,
     })
     .eq('id', batchId);
+
+  if (syncError) {
+    console.error(`[Batch Sync] Error actualizando batch ${batchId}: ${syncError.message}`);
+  }
 }
 
 async function handler(req: NextRequest) {

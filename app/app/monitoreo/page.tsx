@@ -138,8 +138,11 @@ export default async function MonitoreoDashboardPage() {
                             </Link>
                          </td>
                          <td className="py-4">
-                            {batch.status === 'in_progress' && (
-                               <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0">En Progreso</Badge>
+                            {batch.status === 'pending' && (
+                               <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-0">En Cola</Badge>
+                            )}
+                            {batch.status === 'processing' && (
+                               <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0">Procesando</Badge>
                             )}
                             {batch.status === 'completed' && <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">Completado</Badge>}
                             {batch.status === 'failed' && <Badge variant="destructive">Fallido</Badge>}

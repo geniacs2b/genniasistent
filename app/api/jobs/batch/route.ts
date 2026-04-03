@@ -107,13 +107,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Crear el Batch Master
-    // BUG-FIX: 'pending' no es un valor válido en el CHECK de certificate_batches → usar 'in_progress'
+    console.log(`[Batch Engine] Intentando insertar lote para evento ${evento_id} con status: 'pending' (Alineado con check constraint)`);
+    
     const { data: batch, error: batchError } = await supabase.from('certificate_batches')
       .insert({
         tenant_id,
         evento_id,
         total_expected: participantes_ids.length,
-        status: 'in_progress',
+        status: 'pending',
       })
       .select().single();
 
