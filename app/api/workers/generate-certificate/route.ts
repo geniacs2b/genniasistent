@@ -233,33 +233,51 @@ async function handler(req: NextRequest) {
     if (!persona?.correo) {
       console.warn(`[Worker] Participante ${participante_id} sin correo — PDF generado, email omitido.`);
     } else {
+      // Obtener el título del evento para construir el asunto del correo
+      const { data: eventoMeta } = await supabase
+        .from('eventos')
+        .select('titulo')
+        .eq('id', evento_id)
+        .single();
+
+      const subject = eventoMeta?.titulo
+        ? `Tu certificado de "${eventoMeta.titulo}" está listo`
+        : 'Tu certificado de participación está listo';
+
+      console.log(`[Worker] Creando email_delivery | to_email=${persona.correo} | job_id=${job_id} | subject="${subject}"`);
+
+      // Schema real de email_deliveries: job_id, to_email, subject, status (NO certificate_job_id, NO email_to)
       const { data: delivery, error: delError } = await supabase
         .from('email_deliveries')
         .insert({
           tenant_id,
-          certificate_job_id: job_id,
-          email_to:           persona.correo,
-          status:             'pending',
+          job_id,
+          to_email: persona.correo,
+          subject,
+          status:   'pending',
         })
-        .select()
+        .select('id')
         .single();
 
       if (delError) {
-        console.error(`[Worker] Error creando email_delivery: ${delError.message}`);
-      } else if (delivery) {
-        const publicBaseUrl = process.env.PUBLIC_BASE_URL;
-        if (!publicBaseUrl || !publicBaseUrl.startsWith('https://') || publicBaseUrl.includes('localhost')) {
-          throw new Error(`PUBLIC_BASE_URL inválida para producción: '${publicBaseUrl}'`);
-        }
-
-        await qstash.publishJSON({
-          url:     `${publicBaseUrl}/api/workers/deliver-email`,
-          body:    { tenant_id, job_id, delivery_id: delivery.id },
-          retries: 3,
-        });
-
-        console.log(`[Worker] Email encolado para ${persona.correo} | delivery=${delivery.id}`);
+        // Fallo al crear el delivery → lanzar para que el job quede en 'failed' y QStash reintente
+        throw new Error(`Error creando email_delivery para job ${job_id}: ${delError.message}`);
       }
+
+      console.log(`[Worker] email_delivery creado: id=${delivery.id}`);
+
+      const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+      if (!publicBaseUrl || !publicBaseUrl.startsWith('https://') || publicBaseUrl.includes('localhost')) {
+        throw new Error(`PUBLIC_BASE_URL inválida para producción: '${publicBaseUrl}'`);
+      }
+
+      await qstash.publishJSON({
+        url:     `${publicBaseUrl}/api/workers/deliver-email`,
+        body:    { tenant_id, job_id, delivery_id: delivery.id },
+        retries: 3,
+      });
+
+      console.log(`[Worker] deliver-email encolado en QStash | delivery_id=${delivery.id} | to=${persona.correo}`);
     }
 
     // ── 8. Sincronizar progreso del batch ────────────────────────────────────

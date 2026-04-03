@@ -78,9 +78,10 @@ async function handler(req: NextRequest) {
     );
 
     // 1. Obtener delivery — verificar que no esté ya procesado o fallado permanentemente
+    // Schema real: to_email, attempts, last_error, sent_at (NO email_to, retry_count, error_log, dispatched_at)
     const { data: delivery } = await supabase
       .from('email_deliveries')
-      .select('email_to, retry_count, status')
+      .select('to_email, attempts, status, subject')
       .eq('id', delivery_id)
       .single();
 
@@ -107,9 +108,9 @@ async function handler(req: NextRequest) {
     if (!job?.pdf_url) {
       // Sin PDF no se puede enviar — error permanente
       await supabase.from('email_deliveries').update({
-        status:    'failed',
-        error_log: 'PDF no encontrado en el job — generación pudo haber fallado.',
-        retry_count: (delivery.retry_count ?? 0) + 1,
+        status:     'failed',
+        last_error: 'PDF no encontrado en el job — generación pudo haber fallado.',
+        attempts:   (delivery.attempts ?? 0) + 1,
       }).eq('id', delivery_id);
       return NextResponse.json({ success: true, message: 'PDF no disponible — marcado como failed.' });
     }
@@ -126,9 +127,9 @@ async function handler(req: NextRequest) {
       // Sin OAuth no se puede enviar — error permanente
       const msg = 'El Tenant no tiene una cuenta de Google conectada o está inactiva.';
       await supabase.from('email_deliveries').update({
-        status:    'failed',
-        error_log: msg,
-        retry_count: (delivery.retry_count ?? 0) + 1,
+        status:     'failed',
+        last_error: msg,
+        attempts:   (delivery.attempts ?? 0) + 1,
       }).eq('id', delivery_id);
       return NextResponse.json({ success: true, message: msg });
     }
@@ -154,7 +155,7 @@ async function handler(req: NextRequest) {
     const nombreCompleto =
       persona?.nombre_completo?.trim() ||
       `${persona?.nombres ?? ''} ${persona?.apellidos ?? ''}`.trim() ||
-      delivery.email_to;
+      delivery.to_email;
 
     const publicBase = process.env.PUBLIC_BASE_URL || "https://genniasistent.vercel.app";
     const verificacionUrl = `${publicBase}/verificar?cert=${job_id}`;
@@ -200,9 +201,9 @@ async function handler(req: NextRequest) {
         // 404 = PDF eliminado del storage — error permanente
         if (pdfResponse.status === 404) {
           await supabase.from('email_deliveries').update({
-            status:    'failed',
-            error_log: `PDF no encontrado en Storage (404). URL: ${job.pdf_url}`,
-            retry_count: (delivery.retry_count ?? 0) + 1,
+            status:     'failed',
+            last_error: `PDF no encontrado en Storage (404). URL: ${job.pdf_url}`,
+            attempts:   (delivery.attempts ?? 0) + 1,
           }).eq('id', delivery_id);
           return NextResponse.json({ success: false, message: errMsg });
         }
@@ -229,7 +230,7 @@ async function handler(req: NextRequest) {
 
     const rawMime = buildMimeMessage({
       from:        `"${senderName}" <${senderEmail}>`,
-      to:          delivery.email_to,
+      to:          delivery.to_email,
       subject:     asunto,
       htmlBody,
       pdfBuffer,
@@ -242,7 +243,7 @@ async function handler(req: NextRequest) {
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    console.log(`[Worker Email] Enviando correo a ${delivery.email_to} desde <${senderEmail}> (asunto: "${asunto}")`);
+    console.log(`[Worker Email] Enviando correo a ${delivery.to_email} desde <${senderEmail}> (asunto: "${asunto}")`);
     try {
       await gmail.users.messages.send({
         userId: 'me',
@@ -262,9 +263,9 @@ async function handler(req: NextRequest) {
       if (isPermanent) {
         console.error(`[Worker Email] ❌ Error Gmail permanente (no reintentable): ${errMessage}`);
         await supabase.from('email_deliveries').update({
-          status:      'failed',
-          error_log:   errMessage,
-          retry_count: (delivery.retry_count ?? 0) + 1,
+          status:     'failed',
+          last_error: errMessage,
+          attempts:   (delivery.attempts ?? 0) + 1,
         }).eq('id', delivery_id);
         // Retornar 200 para que QStash NO reintente
         return NextResponse.json({ success: false, message: errMessage });
@@ -273,18 +274,20 @@ async function handler(req: NextRequest) {
       throw new Error(errMessage); // retriable → QStash reintentará
     }
 
-    console.log(`[Worker Email] ✅ Correo enviado a ${delivery.email_to} — Job ${job_id}`);
+    console.log(`[Worker Email] ✅ Correo enviado a ${delivery.to_email} — Job ${job_id}`);
 
-    // 7. Marcar como enviado en la tabla de Motor Nativo
+    // 7. Marcar como enviado — columnas reales: sent_at, last_error (NO dispatched_at, error_log)
     // Actualizamos antes de nada para asegurar que si algo falla después, el reintento sepa que ya se envió.
     const { error: updateError } = await supabase.from('email_deliveries').update({
-      status:        'sent',
-      dispatched_at: new Date().toISOString(),
-      error_log:     null,
+      status:     'sent',
+      sent_at:    new Date().toISOString(),
+      last_error: null,
     }).eq('id', delivery_id);
 
     if (updateError) {
-      console.warn(`[Worker Email] Error actualizando status de delivery: ${updateError.message}`);
+      console.warn(`[Worker Email] Error actualizando email_deliveries a 'sent': ${updateError.message}`);
+    } else {
+      console.log(`[Worker Email] email_deliveries ${delivery_id} → status='sent'`);
     }
 
     // 7b. Actualizar certificate_jobs a 'sent' y marcar email_sent=true (schema real)
@@ -340,7 +343,7 @@ async function handler(req: NextRequest) {
       // No lanzamos error para no reintentar el envío del correo (que ya fue exitoso)
     }
 
-    return NextResponse.json({ success: true, message: `Certificado enviado con éxito a ${delivery.email_to}` });
+    return NextResponse.json({ success: true, message: `Certificado enviado con éxito a ${delivery.to_email}` });
 
   } catch (error: any) {
     console.error(`[Worker Email] Error retriable (${error.message}) — QStash reintentará.`);
@@ -352,21 +355,21 @@ async function handler(req: NextRequest) {
         { cookies: { get() { return ''; } } },
       );
 
-      // Leer retry_count actual para decidir si marcar como failed
+      // Leer attempts actual para decidir si marcar como failed permanente
       const { data: deliveryState } = await supabase
         .from('email_deliveries')
-        .select('retry_count')
+        .select('attempts')
         .eq('id', active_delivery_id)
         .single();
 
-      const currentRetries = (deliveryState?.retry_count ?? 0) + 1;
+      const currentAttempts = (deliveryState?.attempts ?? 0) + 1;
       const MAX_RETRIES = 3; // igual que el retries configurado en QStash
 
       await supabase.from('email_deliveries').update({
-        error_log:   error.message,
-        retry_count: currentRetries,
+        last_error: error.message,
+        attempts:   currentAttempts,
         // Marcar como failed después del último reintento para no dejar en limbo
-        ...(currentRetries >= MAX_RETRIES ? { status: 'failed' } : {}),
+        ...(currentAttempts >= MAX_RETRIES ? { status: 'failed' } : {}),
       }).eq('id', active_delivery_id);
     }
 
