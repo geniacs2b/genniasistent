@@ -2,6 +2,18 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Rutas internas del motor de certificados: workers de QStash y jobs API.
+  // Early return sin tocar Supabase auth — estas rutas son invocadas por QStash
+  // (sin cookies de usuario) y no deben incurrir en el overhead de getUser().
+  if (
+    pathname.startsWith('/api/workers/') ||
+    pathname.startsWith('/api/jobs/')
+  ) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -56,7 +68,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname;
   const searchParams = request.nextUrl.searchParams;
   
   // Detect internal Next.js / RSC requests

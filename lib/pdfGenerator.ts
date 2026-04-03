@@ -2,10 +2,12 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 /**
- * Función que inyecta HTML crudo en un navegador Headless (optimizado para Vercel)
- * y emite un Buffer listo para ser guardado en base de datos o en disco.
+ * Genera un PDF a partir de HTML crudo usando Puppeteer + @sparticuz/chromium.
+ * Optimizado para Vercel Serverless (Node.js runtime, no Edge).
  *
- * NOTA: Para funcionar en Vercel, este código debe correr en Node.js Runtime (no Edge Runtime).
+ * REQUISITO en next.config.mjs:
+ *   serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium']
+ * Sin esto, webpack bundlea el paquete y executablePath() no encuentra el binario.
  */
 export async function generatePDF(
   htmlContent: string,
@@ -14,38 +16,57 @@ export async function generatePDF(
 ): Promise<Buffer> {
   let browser = null;
 
+  // Logs de diagnóstico antes de lanzar el browser
+  console.log(`[PDF] Iniciando generación | HTML: ${htmlContent.length} chars | Dims: ${width_px ?? 'A4'}x${height_px ?? 'A4'}`);
+  const hasExternalImages = htmlContent.includes('<img') && htmlContent.includes('http');
+  const hasGoogleFonts    = htmlContent.includes('fonts.googleapis.com');
+  const hasBase64Images   = htmlContent.includes('data:image/');
+  console.log(`[PDF] HTML contiene: imágenes externas=${hasExternalImages} | base64=${hasBase64Images} | Google Fonts=${hasGoogleFonts}`);
+
+  const startMs = Date.now();
+
   try {
-    // Configuraciones recomendadas para Vercel Serverless/AWS Lambda
-    // spartcuz/chromium se encarga de descargar y proveer el ejecutable
     const executablePath = await chromium.executablePath();
+    console.log(`[PDF] executablePath: ${executablePath || 'vacío — usará CHROME_BIN'}`);
+
+    if (!executablePath && !process.env.CHROME_BIN) {
+      throw new Error('Chromium binary no encontrado. executablePath() vacío y CHROME_BIN no configurado.');
+    }
 
     browser = await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: (chromium as any).defaultViewport,
+      // chromium.defaultViewport es undefined en v130+; usar null para no sobreescribir el viewport por página
+      defaultViewport: chromium.defaultViewport ?? null,
       executablePath: executablePath || process.env.CHROME_BIN,
-      headless: (chromium as any).headless,
+      // chromium.headless es undefined en @sparticuz/chromium v130+.
+      // En puppeteer-core v24, headless:true activa el nuevo Headless Mode (recomendado).
+      headless: true,
     });
+
+    console.log(`[PDF] Browser lanzado (${Date.now() - startMs}ms)`);
 
     const page = await browser.newPage();
 
-    // Si se reciben dimensiones de la plantilla, usarlas como viewport exacto
     if (width_px && height_px) {
       await page.setViewport({ width: width_px, height: height_px, deviceScaleFactor: 1 });
     }
 
-    // Inyectamos el HTML de la plantilla en el entorno aislado del navegador
+    // 'domcontentloaded' en lugar de 'networkidle0':
+    // networkidle0 espera 500ms de inactividad de red. Si hay recursos externos
+    // (imágenes URL, Google Fonts) puede hacer timeout. domcontentloaded es inmediato
+    // y el document.fonts.ready posterior se encarga de esperar fuentes web.
     await page.setContent(htmlContent, {
-      // networkidle0 garantiza que la imagen de fondo remota y las fuentes de Google carguen
-      waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
-      timeout: 30000,
+      waitUntil: 'domcontentloaded',
+      timeout: 25000,
     });
 
-    // Esperar a que todas las fuentes (incluidas Google Fonts) estén cargadas
-    // ANTES de ejecutar el auto_fit para que las métricas sean correctas.
-    await page.evaluate(() => document.fonts.ready);
+    console.log(`[PDF] setContent completado (${Date.now() - startMs}ms)`);
 
-    // Auto-fit: reducir font-size hasta que el texto entre en su caja.
-    // Se ejecuta después de fonts.ready para medir con métricas de fuente correctas.
+    // Esperar a que las fuentes (incluyendo Google Fonts si se cargaron) estén listas
+    await page.evaluate(() => document.fonts.ready);
+    console.log(`[PDF] Fuentes listas (${Date.now() - startMs}ms)`);
+
+    // Auto-fit: reducir font-size hasta que el texto entre en su caja
     await page.evaluate(() => {
       const els = document.querySelectorAll<HTMLElement>('[data-autofit]');
       els.forEach(container => {
@@ -66,7 +87,6 @@ export async function generatePDF(
       });
     });
 
-    // Dimensiones de la plantilla o A4 horizontal como fallback
     const pdfBuffer = await page.pdf(
       width_px && height_px
         ? {
@@ -83,13 +103,21 @@ export async function generatePDF(
           },
     );
 
+    const elapsed = Date.now() - startMs;
+    const kb = (pdfBuffer.length / 1024).toFixed(1);
+    console.log(`[PDF] ✅ PDF generado: ${kb} KB en ${elapsed}ms`);
+
     return Buffer.from(pdfBuffer);
-  } catch (error) {
-    console.error('Crash crítico en renderizador Puppeteer:', error);
-    throw new Error('Fallo al renderizar el binario del PDF. Verifica la complejidad del HTML o Timeouts.');
+
+  } catch (error: unknown) {
+    const elapsed = Date.now() - startMs;
+    // Propagar el error real de Puppeteer (no un mensaje genérico)
+    const realMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[PDF] ❌ Error tras ${elapsed}ms:`, error);
+    throw new Error(`PDF generation failed: ${realMessage}`);
   } finally {
     if (browser !== null) {
-      await browser.close();
+      try { await browser.close(); } catch { /* ignorar error de cierre */ }
     }
   }
 }

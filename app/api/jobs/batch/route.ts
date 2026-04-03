@@ -55,11 +55,13 @@ export async function POST(req: NextRequest) {
         ?.map(s => s.persona_id) || [];
 
       if (participantes_ids.length === 0) {
-        return NextResponse.json({ 
-          success: true, 
-          message: "No hay participantes pendientes de certificación para este evento.",
-          count: 0 
-        });
+        console.warn(`[Batch Engine] RPC devolvió 0 participantes elegibles para evento ${evento_id}. statusList total: ${statusList?.length ?? 0}`);
+        // 422 en lugar de 200 para que el frontend muestre advertencia real, no falso éxito.
+        return NextResponse.json({
+          error: "No hay participantes elegibles para certificación en este evento. Verifica que cumplan criterios de asistencia o habilitación manual.",
+          count: 0,
+          total_en_rpc: statusList?.length ?? 0
+        }, { status: 422 });
       }
     }
 
@@ -87,13 +89,15 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (activeBatches && activeBatches.length > 0) {
-      console.warn(`[Batch Engine] Ya existe un lote activo (id: ${activeBatches[0].id}, status: ${activeBatches[0].status}). Abortando duplicado.`);
-      return NextResponse.json({ 
-        success: true, 
-        message: "Ya existe un proceso en curso para este evento. Por favor espera a que termine.",
-        batch_id: activeBatches[0].id,
+      const stuck = activeBatches[0];
+      console.warn(`[Batch Engine] Lote activo detectado (id: ${stuck.id}, status: ${stuck.status}). Bloqueando duplicado.`);
+      // IMPORTANTE: Retornamos 409 (no 200) para que automationService sepa que NADA fue creado.
+      // Un 200 con is_duplicate silencia el error en el frontend y el usuario cree que funcionó.
+      return NextResponse.json({
+        error: `Ya existe un proceso en curso para este evento (lote ${stuck.id}, estado: ${stuck.status}). Espera a que termine o contacta soporte si lleva más de 1 hora.`,
+        batch_id: stuck.id,
         is_duplicate: true
-      });
+      }, { status: 409 });
     }
 
     // 1. Verificar cuota disponible (Logging para debug)
@@ -180,16 +184,20 @@ export async function POST(req: NextRequest) {
     const workerUrl = `${publicBaseUrl}/api/workers/generate-certificate`;
     console.log(`[Batch Engine] Destino QStash: ${workerUrl}`);
 
-    // Batch JSON para mandarlos a QStash
+    // IMPORTANTE: batchJSON serializa el body internamente (JSON.stringify).
+    // Pasar body como OBJETO puro — NO usar JSON.stringify aquí o habrá doble serialización.
+    // Bug confirmado en SDK @upstash/qstash v2: batchJSON hace JSON.stringify(message.body)
+    // siempre, sin importar si ya es string. Resultado con stringify manual: body llega como
+    // string al worker, destructuring da todo undefined, attempts=0 y jobs quedan en pending.
     const eventsToPublish = insertedJobs.map((job) => ({
         url: workerUrl,
-        body: JSON.stringify({
-            tenant_id: tenant_id,
-            batch_id:  batch.id,
-            job_id:    job.id,
-            evento_id: evento_id,
+        body: {
+            tenant_id:       tenant_id,
+            batch_id:        batch.id,
+            job_id:          job.id,
+            evento_id:       evento_id,
             participante_id: job.participante_id,
-        }),
+        },
         retries: 2,
     }));
 

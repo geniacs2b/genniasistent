@@ -283,6 +283,19 @@ async function handler(req: NextRequest) {
       console.warn(`[Worker Email] Error actualizando status de delivery: ${updateError.message}`);
     }
 
+    // 7b. Actualizar certificate_jobs a 'sent' (estado final en schema real)
+    const { error: jobSentError } = await supabase.from('certificate_jobs').update({
+      status:     'sent',
+      updated_at: new Date().toISOString(),
+    }).eq('id', job_id);
+
+    if (jobSentError) {
+      console.warn(`[Worker Email] Error actualizando job ${job_id} a 'sent': ${jobSentError.message}`);
+      // No lanzamos — el correo ya fue enviado, este update es de trazabilidad
+    } else {
+      console.log(`[Worker Email] Job ${job_id} marcado como 'sent'.`);
+    }
+
     // 8. SINCRONIZACIÓN CON TABLA LEGADA (Para Visibilidad en UI)
     try {
       const { data: inscripcion } = await supabase

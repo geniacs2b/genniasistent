@@ -13,6 +13,7 @@ export const automationService = {
       const data = await response.json();
 
       if (!response.ok) {
+        // 409 = lote duplicado activo, 422 = sin participantes elegibles, 5xx = error de servidor
         return {
           ok: false,
           message: data.error || data.message || 'Error en el motor nativo',
@@ -21,7 +22,7 @@ export const automationService = {
 
       return {
         ok: true,
-        message: 'Generación masiva iniciada.',
+        message: `Lote creado. ${data.batch_id ? `ID: ${data.batch_id.slice(0, 8)}…` : 'Procesando…'}`,
       };
     } catch (error: any) {
       console.error('Error in automationService:', error);

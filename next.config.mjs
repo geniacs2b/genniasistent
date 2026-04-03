@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    // Los errores de ESLint no detienen el build en producción
-    // Se resolverán progresivamente al conectar con Supabase real
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Permitir build aunque haya errores de tipo menores
     ignoreBuildErrors: false,
   },
+  // CRÍTICO: puppeteer-core y @sparticuz/chromium NO deben ser bundleados por webpack.
+  // Si se bundlean, executablePath() falla al localizar el binario de Chromium en /tmp.
+  // serverExternalPackages es top-level desde Next.js 14.2.0 (ya no es experimental).
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
 };
 
 export default nextConfig;

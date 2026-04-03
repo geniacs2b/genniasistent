@@ -208,6 +208,25 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
     throw new Error(`${prefix} La plantilla "${plantilla.nombre}" no tiene imagen de fondo configurada.`);
   }
 
+  // Pre-cargar imagen de fondo como base64 para que Puppeteer no haga requests HTTP externos.
+  // Sin esto, waitUntil:'networkidle0' bloquea hasta que la imagen carga desde Supabase Storage,
+  // pudiendo hacer timeout. Con base64, el HTML es autocontenido y no hay red en Puppeteer.
+  let bgImageSrc = plantilla.archivo_base_url;
+  try {
+    const imgRes = await fetch(plantilla.archivo_base_url);
+    if (imgRes.ok) {
+      const imgBuf  = await imgRes.arrayBuffer();
+      const imgB64  = Buffer.from(imgBuf).toString('base64');
+      const ct      = imgRes.headers.get('content-type') || 'image/jpeg';
+      bgImageSrc    = `data:${ct};base64,${imgB64}`;
+      console.log(`${prefix} Imagen de fondo pre-cargada: ${(imgBuf.byteLength / 1024).toFixed(0)} KB (${ct})`);
+    } else {
+      console.warn(`${prefix} ⚠️ No se pudo pre-cargar imagen de fondo (HTTP ${imgRes.status}) — usando URL remota.`);
+    }
+  } catch (imgErr: any) {
+    console.warn(`${prefix} ⚠️ Fetch de imagen de fondo falló (${imgErr?.message}) — usando URL remota.`);
+  }
+
   // ── 4. Cargar campos de la plantilla ─────────────────────────────────────
   const { data: campos, error: camposErr } = await supabase
     .from('plantilla_campos_certificado')
@@ -408,9 +427,8 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
   <div class="certificate-container">
     <img
       class="certificate-bg"
-      src="${plantilla.archivo_base_url}"
+      src="${bgImageSrc}"
       alt="Plantilla de certificado"
-      crossorigin="anonymous"
     />
     <div class="certificate-fields">
       ${camposHtml}
