@@ -91,13 +91,14 @@ export default async function MonitoreoDashboardPage() {
             </CardContent>
          </Card>
 
-         <Card className="shadow-sm border-slate-200/60 dark:border-slate-800">
+          <Card className="shadow-sm border-slate-200/60 dark:border-slate-800">
             <CardContent className="p-6 flex items-center justify-between">
                <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Motor Desplegado</p>
-                  <Badge variant={tenantInfo.use_native_engine ? "default" : "secondary"} className="mt-2 text-sm px-4">
-                     {tenantInfo.use_native_engine ? '⚡ Nativo Paralelo (QStash)' : '🐢 Legacy (n8n)'}
+                  <Badge variant="default" className="mt-2 text-sm px-4 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0">
+                     {'⚡ Nativo Paralelo (QStash)'}
                   </Badge>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold italic">Infraestructura Independiente</p>
                </div>
                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl hidden md:flex items-center justify-center">
                   <Activity className="w-6 h-6 text-slate-600 dark:text-slate-400" />
