@@ -10,11 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
 const estadoBadgeClass: Record<string, string> = {
+  // Estado del motor nativo (fuente principal)
   Enviado:     "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Cumple:      "bg-amber-100 text-amber-700 border-amber-200",
-  "No cumple": "bg-slate-100 text-slate-500 border-slate-200",
+  // Estados de elegibilidad (pre-envío)
   Autorizado:  "bg-amber-100 text-amber-700 border-amber-200",
+  Cumple:      "bg-amber-100 text-amber-700 border-amber-200",
+  // Estados sin acción disponible
   "No enviado":"bg-slate-100 text-slate-500 border-slate-200",
+  "No cumple": "bg-slate-100 text-slate-500 border-slate-200",
 };
 
 interface ParticipantesClientProps {
@@ -36,18 +39,23 @@ export function ParticipantesClient({ initialInscripciones }: ParticipantesClien
     return insc.eventos?.titulo === selectedEvento;
   });
 
-  const handleManualSend = async (insc: any) => {
-    setSendingId(`${insc.id}-cert`);
+  const handleManualSend = async (insc: any, isResend: boolean = false) => {
+    const sendKey = `${insc.id}-cert`;
+    setSendingId(sendKey);
     try {
       const { automationService } = await import("@/services/automationService");
+      const origen = isResend ? 'reenvio_manual' : 'manual';
       const result = await automationService.triggerIndividualCertificate(
-        insc.evento_id, 
+        insc.evento_id,
         insc.persona_id,
-        insc.ultimoEnvioCertificado?.estado_envio === 'error' ? 'reintento' : 'manual'
+        origen
       );
 
       if (result.ok) {
-        toast({ title: "Envío iniciado", description: result.message });
+        toast({
+          title: isResend ? "Reenvío iniciado" : "Envío iniciado",
+          description: result.message,
+        });
       } else {
         toast({ title: "Error", description: result.message, variant: "destructive" });
       }
@@ -58,27 +66,6 @@ export function ParticipantesClient({ initialInscripciones }: ParticipantesClien
     }
   };
 
-  const handleEmailSend = async (insc: any) => {
-    setSendingId(`${insc.id}-email`);
-    try {
-      const { automationService } = await import("@/services/automationService");
-      const result = await automationService.triggerIndividualEmail(
-        insc.evento_id, 
-        insc.persona_id,
-        insc.ultimoEnvioCorreo?.estado === 'error' ? 'reintento' : 'manual'
-      );
-
-      if (result.ok) {
-        toast({ title: "Correo en proceso", description: result.message });
-      } else {
-        toast({ title: "Error", description: result.message, variant: "destructive" });
-      }
-    } catch (error: any) {
-      toast({ title: "Error de conexión", description: error.message, variant: "destructive" });
-    } finally {
-      setSendingId(null);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -197,15 +184,12 @@ export function ParticipantesClient({ initialInscripciones }: ParticipantesClien
                   </TableCell>
                   <TableCell className="pr-6">
                     <div className="flex items-center justify-center">
-                      {insc.accion_boton && (
+                      {/* Participante elegible — primer envío */}
+                      {insc.accion_boton === 'enviar' && (
                         <Button
                           size="sm"
-                          variant={insc.accion_boton === 'reenviar' ? "outline" : "secondary"}
-                          className={`h-9 gap-2 text-xs font-bold uppercase transition-all shadow-sm ${
-                            insc.accion_boton === 'reenviar' ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 
-                            'bg-primary text-primary-foreground hover:bg-primary/90'
-                          }`}
-                          onClick={() => handleManualSend(insc)}
+                          className="h-9 gap-2 text-xs font-bold uppercase transition-all shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={() => handleManualSend(insc, false)}
                           disabled={!!sendingId}
                         >
                           {sendingId === `${insc.id}-cert` ? (
@@ -213,7 +197,44 @@ export function ParticipantesClient({ initialInscripciones }: ParticipantesClien
                           ) : (
                             <Send className="w-3 h-3" />
                           )}
-                          {insc.accion_boton === 'reenviar' ? "Reintentar" : "Enviar Correo"}
+                          Enviar Correo
+                        </Button>
+                      )}
+
+                      {/* Envío previo falló — reintentar */}
+                      {insc.accion_boton === 'reenviar' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 gap-2 text-xs font-bold uppercase transition-all shadow-sm text-rose-600 border-rose-200 hover:bg-rose-50"
+                          onClick={() => handleManualSend(insc, false)}
+                          disabled={!!sendingId}
+                        >
+                          {sendingId === `${insc.id}-cert` ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3 h-3" />
+                          )}
+                          Reintentar
+                        </Button>
+                      )}
+
+                      {/* Ya enviado — el admin puede forzar un reenvío manual */}
+                      {insc.enviado && !insc.accion_boton && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 gap-2 text-xs font-bold uppercase transition-all shadow-sm text-blue-600 border-blue-200 hover:bg-blue-50"
+                          onClick={() => handleManualSend(insc, true)}
+                          disabled={!!sendingId}
+                          title="El certificado ya fue enviado. Usa esta opción solo si necesitas reenviarlo manualmente."
+                        >
+                          {sendingId === `${insc.id}-cert` ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3 h-3" />
+                          )}
+                          Reenviar
                         </Button>
                       )}
                     </div>

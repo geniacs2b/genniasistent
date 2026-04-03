@@ -48,18 +48,34 @@ export async function POST(req: NextRequest) {
 
       if (stError) throw new Error(`Error invocando RPC: ${stError.message}`);
 
-      // Filtramos por aquellos que tienen 'enviar' o 'reenviar' en accion_boton
-      // Esto asegura que no enviemos a quienes no cumplen o ya tienen certificado enviado.
+      // REGLA DE NEGOCIO CRÍTICA:
+      // El envío automático en lote solo procesa participantes con accion_boton='enviar'
+      // (nunca enviados, que cumplen criterios). Los de accion_boton='reenviar' (envío fallido
+      // previo) solo se reenvían manualmente por el administrador para evitar spam accidental.
+      // Los de accion_boton=null (ya enviados o no elegibles) quedan excluidos.
+      const yaEnviados   = (statusList as any[])?.filter(s => s.enviado === true).length ?? 0;
+      const conFallo     = (statusList as any[])?.filter(s => s.accion_boton === 'reenviar').length ?? 0;
+
       participantes_ids = (statusList as any[])
-        ?.filter(s => s.accion_boton === 'enviar' || s.accion_boton === 'reenviar')
+        ?.filter(s => s.accion_boton === 'enviar')
         ?.map(s => s.persona_id) || [];
 
+      console.log(`[Batch Engine] Elegibilidad evento ${evento_id}: total=${statusList?.length ?? 0} | a_enviar=${participantes_ids.length} | ya_enviados=${yaEnviados} | con_fallo=${conFallo}`);
+
       if (participantes_ids.length === 0) {
-        console.warn(`[Batch Engine] RPC devolvió 0 participantes elegibles para evento ${evento_id}. statusList total: ${statusList?.length ?? 0}`);
-        // 422 en lugar de 200 para que el frontend muestre advertencia real, no falso éxito.
+        const hayEnviados = yaEnviados > 0;
+        const hayFallos   = conFallo > 0;
+        const detalle = [
+          hayEnviados ? `${yaEnviados} ya recibieron el certificado` : '',
+          hayFallos   ? `${conFallo} con fallo previo (usar Reenvío Manual)` : '',
+        ].filter(Boolean).join(', ');
+
+        console.warn(`[Batch Engine] Sin participantes para envío automático | ${detalle}`);
         return NextResponse.json({
-          error: "No hay participantes elegibles para certificación en este evento. Verifica que cumplan criterios de asistencia o habilitación manual.",
+          error: `No hay participantes pendientes de envío en este evento.${ detalle ? ` (${detalle})` : '' }`,
           count: 0,
+          ya_enviados: yaEnviados,
+          con_fallo_manual: conFallo,
           total_en_rpc: statusList?.length ?? 0
         }, { status: 422 });
       }
