@@ -99,7 +99,7 @@ async function handler(req: NextRequest) {
     // 2. Obtener job con campos necesarios para el correo
     const { data: job } = await supabase
       .from('certificate_jobs')
-      .select('pdf_url, evento_id, persona_id, codigo_certificado')
+      .select('pdf_url, evento_id, participante_id, codigo_certificado')
       .eq('id', job_id)
       .single();
 
@@ -137,7 +137,7 @@ async function handler(req: NextRequest) {
       supabase.from('tenants').select('name, logo_url').eq('id', tenant_id).single(),
       supabase.from('configuracion_correo_sistema').select('*').eq('tenant_id', tenant_id).eq('activo', true).limit(1).single(),
       supabase.from('eventos').select('titulo, fecha_inicio, fecha_fin').eq('id', job.evento_id).single(),
-      supabase.from('personas').select('nombre_completo, nombres, apellidos').eq('id', job.persona_id).single(),
+      supabase.from('personas').select('nombre_completo, nombres, apellidos').eq('id', job.participante_id).single(),
     ]);
 
     const tenant   = tenantRes.data;
@@ -289,14 +289,14 @@ async function handler(req: NextRequest) {
         .from('inscripciones')
         .select('id')
         .eq('evento_id', job.evento_id)
-        .eq('persona_id', job.persona_id)
+        .eq('persona_id', job.participante_id)
         .maybeSingle();
 
       if (inscripcion) {
         // Insertamos un registro de éxito para que el RPC obtener_estado_certificados_evento lo detecte
         await supabase.from('envios_correo').insert({
           evento_id:      job.evento_id,
-          persona_id:     job.persona_id,
+          persona_id:     job.participante_id,
           inscripcion_id: inscripcion.id,
           estado:         'enviado',
           asunto_real:    asunto,

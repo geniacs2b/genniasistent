@@ -58,7 +58,7 @@ async function handler(req: NextRequest) {
   let active_batch_id:  string | undefined;
 
   try {
-    const { tenant_id, batch_id, job_id, evento_id, persona_id: participante_id } = await req.json();
+    const { tenant_id, batch_id, job_id, evento_id, participante_id } = await req.json();
 
     active_job_id    = job_id;
     active_tenant_id = tenant_id;
@@ -78,7 +78,7 @@ async function handler(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────────
     // 2. Renderizar HTML con datos reales de la plantilla
     // ────────────────────────────────────────────────────────────────────────
-    console.log(`[Worker Generador] Renderizando plantilla: persona=${participante_id} evento=${evento_id}`);
+    console.log(`[Worker Generador] Renderizando plantilla: participante=${participante_id} evento=${evento_id}`);
 
     const { html, width_px, height_px, codigo_certificado } = await buildCertificateHtml({
       job_id,

@@ -121,12 +121,12 @@ export async function POST(req: NextRequest) {
     if (batchError || !batch) throw new Error(batchError?.message);
 
     // 3. Crear los Jobs en DB y Encolar a QStash masivamente
-    // BUG-FIX: columna real es persona_id, no participante_id
+    // Normalizado: la columna física en certificate_jobs es participante_id
     const jobsToInsert = participantes_ids.map((pId: string) => ({
       tenant_id,
       evento_id,
       batch_id: batch.id,
-      persona_id: pId,
+      participante_id: pId,
       status: 'pending',
     }));
 
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
             batch_id:  batch.id,
             job_id:    job.id,
             evento_id: evento_id,
-            persona_id: job.persona_id,
+            participante_id: job.participante_id,
         }),
         retries: 2,
     }));

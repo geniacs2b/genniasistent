@@ -12,9 +12,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { evento_id, persona_id, tenant_id: bodyTenantId, origen, tipo } = await req.json();
+    const { evento_id, persona_id: p_id, tenant_id: bodyTenantId, origen, tipo } = await req.json();
 
-    if (!evento_id || !persona_id) {
+    if (!evento_id || !p_id) {
       return NextResponse.json({ error: "Parámetros insuficientes (evento_id y persona_id requeridos)" }, { status: 400 });
     }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       .insert({
         tenant_id,
         evento_id,
-        persona_id,
+        participante_id: p_id,
         status: 'pending',
         error_log: `Origen: ${origen || 'manual'}${tipo === 'email_only' ? ' (Email Only)' : ''}`
       })
@@ -82,13 +82,13 @@ export async function POST(req: NextRequest) {
         tenant_id,
         job_id: job.id,
         evento_id,
-        persona_id,
+        participante_id: p_id,
         tipo // opcional, para que el worker sepa si solo debe mandar email
       },
       retries: 2,
     });
 
-    console.log(`[Individual Engine] Job ${job.id} encolado para persona ${persona_id}`);
+    console.log(`[Individual Engine] Job ${job.id} encolado para participante ${p_id}`);
 
     return NextResponse.json({
       success: true,
