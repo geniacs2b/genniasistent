@@ -75,6 +75,26 @@ export async function POST(req: NextRequest) {
     console.log(`[QStash] Usando URL: ${process.env.QSTASH_URL}`);
 
     // Reutilizamos el cliente supabase ya declarado arriba
+    
+    // 0. IDEMPOTENCIA: Verificar si ya hay un lote en curso para este evento
+    console.log(`[Batch Engine] Verificando lotes previos para evento: ${evento_id}`);
+
+    const { data: activeBatches } = await supabase
+      .from('certificate_batches')
+      .select('id, status')
+      .eq('evento_id', evento_id)
+      .in('status', ['pending', 'processing'])
+      .limit(1);
+
+    if (activeBatches && activeBatches.length > 0) {
+      console.warn(`[Batch Engine] Ya existe un lote activo (id: ${activeBatches[0].id}, status: ${activeBatches[0].status}). Abortando duplicado.`);
+      return NextResponse.json({ 
+        success: true, 
+        message: "Ya existe un proceso en curso para este evento. Por favor espera a que termine.",
+        batch_id: activeBatches[0].id,
+        is_duplicate: true
+      });
+    }
 
     // 1. Verificar cuota disponible (Logging para debug)
     console.log(`[Batch Engine] Iniciando validación de cuota para tenant_id: ${tenant_id}`);
@@ -107,7 +127,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Crear el Batch Master
-    console.log(`[Batch Engine] Intentando insertar lote para evento ${evento_id} con status: 'pending' (Alineado con check constraint)`);
+    console.log(`[Batch Engine] Insertando Master Batch para evento ${evento_id}...`);
     
     const { data: batch, error: batchError } = await supabase.from('certificate_batches')
       .insert({
@@ -118,7 +138,12 @@ export async function POST(req: NextRequest) {
       })
       .select().single();
 
-    if (batchError || !batch) throw new Error(batchError?.message);
+    if (batchError || !batch) {
+      console.error("[Batch Engine] Error al crear Master Batch:", batchError);
+      throw new Error(`Error DB al crear lote: ${batchError?.message}`);
+    }
+
+    console.log(`[Batch Engine] Batch ${batch.id} creado con éxito. Insertando ${participantes_ids.length} jobs...`);
 
     // 3. Crear los Jobs en DB y Encolar a QStash masivamente
     // Normalizado: la columna física en certificate_jobs es participante_id
@@ -133,7 +158,12 @@ export async function POST(req: NextRequest) {
     const { data: insertedJobs, error: insertError } = await supabase.from('certificate_jobs')
       .insert(jobsToInsert).select();
 
-    if (insertError) throw new Error(insertError.message);
+    if (insertError) {
+      console.error("[Batch Engine] Error al insertar jobs:", insertError);
+      throw new Error(`Error DB al insertar trabajos individuales: ${insertError.message}`);
+    }
+
+    console.log(`[Batch Engine] ${insertedJobs?.length ?? 0} jobs persistidos. Preparando fan-out a QStash...`);
 
     // QStash Fan-Out: Enviamos todo a la cola para Worker de PDFs
     const publicBaseUrl = process.env.PUBLIC_BASE_URL;

@@ -72,8 +72,13 @@ async function handler(req: NextRequest) {
       { cookies: { get() { return ''; } } },
     );
 
-    // 1. Marcar como "Generando"
+    // 1. Marcar como "Generando" e informar al Lote que iniciamos (si aplica)
     await supabase.from('certificate_jobs').update({ status: 'generating' }).eq('id', job_id);
+
+    if (active_batch_id) {
+       // Sincronización proactiva para cambiar de 'pending' to 'processing'
+       await syncBatchProgress(supabase, active_batch_id);
+    }
 
     // ────────────────────────────────────────────────────────────────────────
     // 2. Renderizar HTML con datos reales de la plantilla
