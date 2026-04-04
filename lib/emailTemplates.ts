@@ -217,76 +217,21 @@ const BASE_EMAIL_TEMPLATE = `<div style="margin:0; padding:30px 15px; background
       </div>
       {{/if}}
 
-      {{#if show_titulo_cert}}
-      <div style="display:inline-block; background:rgba(255,255,255,0.14); border-radius:999px; padding:12px 30px;">
-        <span style="font-size:17px; font-weight:700; letter-spacing:1px; color:{{header_text_color}}; text-transform:uppercase;">
-          Certificado de Participaci&#243;n
-        </span>
-      </div>
-      {{/if}}
-
     </div>
 
     <!-- ═══ BODY ═══ -->
     <div style="padding:42px 46px 36px 46px;">
 
-      {{#if show_saludo}}
-      <div style="margin-bottom:8px; color:#6366f1; font-size:18px; font-weight:700; letter-spacing:0.5px;">
-        &#161;Felicitaciones!
-      </div>
-      <div style="margin-bottom:24px; color:#111833; font-size:29px; line-height:1.2; font-weight:800;">
-        {{nombre_participante}}
-      </div>
-      {{/if}}
-
-      <!-- MENSAJE PRINCIPAL — siempre visible, protagonista del correo -->
+      <!-- MENSAJE PRINCIPAL — protagonista del correo -->
       <div style="font-size:16px; line-height:1.8; color:#38445c;">
         {{mensaje_renderizado}}
       </div>
 
-      {{#if show_resumen_evento}}
-      <div style="margin-top:28px; background:#f1f3ff; border-left:5px solid #4a6cf0; border-radius:0 14px 14px 0; padding:22px 26px;">
-        <div style="font-size:12px; font-weight:800; letter-spacing:1.5px; color:#5c63e6; text-transform:uppercase; margin-bottom:8px;">
-          Evento Certificado
-        </div>
-        <div style="font-size:19px; font-weight:800; color:#213a70; margin-bottom:6px; line-height:1.3;">
-          {{evento_titulo}}
-        </div>
-        {{#if fecha_evento}}
-        <div style="font-size:14px; color:#6b7280; line-height:1.5;">
-          {{fecha_evento}}
-        </div>
-        {{/if}}
-      </div>
-      {{/if}}
-
-      {{#if show_codigo}}
-      <div style="margin-top:28px; border-top:1px solid #e7ebf2; padding-top:28px;">
-        <div style="border:1px solid #dce3ef; border-radius:14px; padding:22px 20px; text-align:center; background:#fafbfd;">
-          <div style="font-size:11px; font-weight:800; letter-spacing:2px; color:#95a1b8; text-transform:uppercase; margin-bottom:12px;">
-            C&#243;digo de Certificado
-          </div>
-          <div style="font-size:20px; font-weight:800; letter-spacing:3px; color:#233768; font-family:monospace;">
-            {{codigo_certificado}}
-          </div>
-        </div>
-      </div>
-      {{/if}}
-
       {{#if show_boton_descarga}}
-      <div style="margin-top:28px; text-align:center;">
+      <div style="margin-top:32px; text-align:center;">
         <a href="{{url_descarga}}" target="_blank"
           style="display:inline-block; background:linear-gradient(90deg,{{header_bg_btn_start}} 0%,{{header_bg_btn_end}} 100%); color:#ffffff; text-decoration:none; font-size:17px; font-weight:800; padding:16px 32px; border-radius:14px; min-width:300px; box-shadow:0 6px 16px rgba(53,88,216,0.22);">
           &#11015; Descargar mi Certificado
-        </a>
-      </div>
-      {{/if}}
-
-      {{#if show_boton_verificacion}}
-      <div style="margin-top:14px; text-align:center;">
-        <a href="{{url_verificacion}}" target="_blank"
-          style="display:inline-block; background:#ffffff; color:#3a63ea; text-decoration:none; font-size:14px; font-weight:700; padding:13px 26px; border-radius:12px; min-width:260px; border:1.5px solid #c7d8ff;">
-          Verificar autenticidad del certificado
         </a>
       </div>
       {{/if}}
