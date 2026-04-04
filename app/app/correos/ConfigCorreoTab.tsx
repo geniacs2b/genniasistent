@@ -16,11 +16,64 @@ import {
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { EmailPreview } from "@/components/EmailPreview";
 
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.849L.057 23.571a.75.75 0 0 0 .921.921l5.799-1.485A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.715 9.715 0 0 1-4.963-1.357l-.356-.212-3.683.943.976-3.565-.232-.368A9.718 9.718 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+  </svg>
+);
+
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
     <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.6-4.12-1.31a8.776 8.776 0 0 1-1.87-1.42v7.74c.04 4.14-2.88 8.04-6.99 8.91-4.11.87-8.49-1.39-9.84-5.32-1.39-3.91.43-8.52 4.19-10.34 1.16-.57 2.45-.83 3.73-.81v3.91c-.81-.07-1.63.05-2.38.38-.93.41-1.67 1.2-1.99 2.16-.39.98-.24 2.16.42 2.94.61.76 1.61 1.15 2.58 1.01.99-.11 1.84-.81 2.13-1.74.12-.42.15-.86.15-1.3v-11.4c-.01-1.05.01-2.11-.01-3.16Z" />
   </svg>
 );
+
+// ── Códigos de país para WhatsApp ────────────────────────────────────────────
+const PAISES_WHATSAPP = [
+  { code: '+57',  flag: '🇨🇴', nombre: 'Colombia' },
+  { code: '+58',  flag: '🇻🇪', nombre: 'Venezuela' },
+  { code: '+51',  flag: '🇵🇪', nombre: 'Perú' },
+  { code: '+593', flag: '🇪🇨', nombre: 'Ecuador' },
+  { code: '+56',  flag: '🇨🇱', nombre: 'Chile' },
+  { code: '+54',  flag: '🇦🇷', nombre: 'Argentina' },
+  { code: '+55',  flag: '🇧🇷', nombre: 'Brasil' },
+  { code: '+52',  flag: '🇲🇽', nombre: 'México' },
+  { code: '+53',  flag: '🇨🇺', nombre: 'Cuba' },
+  { code: '+502', flag: '🇬🇹', nombre: 'Guatemala' },
+  { code: '+503', flag: '🇸🇻', nombre: 'El Salvador' },
+  { code: '+504', flag: '🇭🇳', nombre: 'Honduras' },
+  { code: '+505', flag: '🇳🇮', nombre: 'Nicaragua' },
+  { code: '+506', flag: '🇨🇷', nombre: 'Costa Rica' },
+  { code: '+507', flag: '🇵🇦', nombre: 'Panamá' },
+  { code: '+591', flag: '🇧🇴', nombre: 'Bolivia' },
+  { code: '+595', flag: '🇵🇾', nombre: 'Paraguay' },
+  { code: '+598', flag: '🇺🇾', nombre: 'Uruguay' },
+  { code: '+1',   flag: '🇺🇸', nombre: 'EE.UU. / Canadá' },
+  { code: '+34',  flag: '🇪🇸', nombre: 'España' },
+  { code: '+44',  flag: '🇬🇧', nombre: 'Reino Unido' },
+  { code: '+49',  flag: '🇩🇪', nombre: 'Alemania' },
+  { code: '+33',  flag: '🇫🇷', nombre: 'Francia' },
+  { code: '+39',  flag: '🇮🇹', nombre: 'Italia' },
+  { code: '+351', flag: '🇵🇹', nombre: 'Portugal' },
+];
+
+/** Separa el código de país del número local al cargar un valor guardado. */
+function parsearNumeroWhatsapp(valor: string | null | undefined): { pais: string; numero: string } {
+  if (!valor) return { pais: '+57', numero: '' };
+  const limpio = valor.startsWith('+') ? valor : `+${valor}`;
+  // Ordenar de mayor a menor longitud para evitar falso match (+1 antes de +57)
+  const codigosOrdenados = [...PAISES_WHATSAPP]
+    .map(p => p.code)
+    .sort((a, b) => b.length - a.length);
+  for (const codigo of codigosOrdenados) {
+    if (limpio.startsWith(codigo)) {
+      return { pais: codigo, numero: limpio.slice(codigo.length) };
+    }
+  }
+  // Fallback: sin coincidencia conocida — mantener todo como número
+  return { pais: '+57', numero: limpio.replace(/^\+/, '') };
+}
 
 interface OAuthConfig {
   id: string;
@@ -45,6 +98,11 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
   const [sendingTest, setSendingTest] = useState(false);
   const { toast } = useToast();
 
+  // WhatsApp: código de país + número local separados
+  const { pais: paisInicial, numero: numeroInicial } = parsearNumeroWhatsapp(config?.whatsapp_numero);
+  const [whatsappPais, setWhatsappPais]     = useState(paisInicial);
+  const [whatsappNumero, setWhatsappNumero] = useState(numeroInicial);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -52,6 +110,8 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
     formData.set("firma_html", firmaHtml);
     formData.set("footer_html", footerHtml);
     formData.set("mostrar_footer", String(mostrarFooter));
+    const numLimpio = whatsappNumero.replace(/\D/g, '');
+    formData.set("whatsapp_numero", numLimpio ? `${whatsappPais}${numLimpio}` : '');
 
     try {
       const res = await saveEmailConfigAction(formData);
@@ -311,6 +371,39 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
               <MapMarker className="w-3 h-3" /> Dirección
             </Label>
             <Input name="direccion_contacto" defaultValue={config?.direccion_contacto} className="h-11 bg-white/70 rounded-xl border-slate-200" />
+          </div>
+
+          {/* WhatsApp — selector de país + número */}
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-2 tracking-wider">
+              <WhatsAppIcon className="w-3 h-3 text-green-500" /> WhatsApp
+            </Label>
+            <div className="flex gap-2">
+              <select
+                value={whatsappPais}
+                onChange={e => setWhatsappPais(e.target.value)}
+                className="h-11 rounded-xl border border-slate-200 bg-white/70 px-2 text-sm text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                title="Código de país"
+              >
+                {PAISES_WHATSAPP.map(p => (
+                  <option key={p.code} value={p.code}>
+                    {p.flag} {p.code} {p.nombre}
+                  </option>
+                ))}
+              </select>
+              <Input
+                value={whatsappNumero}
+                onChange={e => setWhatsappNumero(e.target.value.replace(/\D/g, ''))}
+                placeholder="3118121136"
+                maxLength={15}
+                className="h-11 bg-white/70 rounded-xl border-slate-200 flex-1"
+              />
+            </div>
+            {whatsappNumero && (
+              <p className="text-xs text-slate-400">
+                Enlace generado: wa.me/{whatsappPais.replace('+', '')}{whatsappNumero}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">

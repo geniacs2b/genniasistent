@@ -149,36 +149,60 @@ async function handler(req: NextRequest) {
     const verificacionUrl = `${publicBase}/verificar?cert=${job_id}`;
     const codigoCert    = `CERT-${job_id.replace(/-/g, '').slice(0, 10).toUpperCase()}`;
 
-    // ── 5. Fecha del evento formateada ───────────────────────────────────────
+    // ── 5. Fechas formateadas ────────────────────────────────────────────────
+    const fmtDate = (iso: string) => {
+      const d = new Date(iso);
+      const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      return `${d.getUTCDate()} de ${meses[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
+    };
+    const fechaInicioEvento = evento?.fecha_inicio ? fmtDate(evento.fecha_inicio) : '';
+    const fechaFinEvento    = evento?.fecha_fin    ? fmtDate(evento.fecha_fin)    : '';
     let fechaEvento: string | undefined;
     if (evento?.fecha_inicio) {
-      const fmt = (iso: string) => {
-        const d = new Date(iso);
-        const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-        return `${d.getUTCDate()} de ${meses[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
-      };
       fechaEvento = evento.fecha_fin && evento.fecha_fin !== evento.fecha_inicio
-        ? `${fmt(evento.fecha_inicio)} al ${fmt(evento.fecha_fin)}`
-        : fmt(evento.fecha_inicio);
+        ? `${fmtDate(evento.fecha_inicio)} al ${fmtDate(evento.fecha_fin)}`
+        : fmtDate(evento.fecha_inicio);
     }
 
-    // ── 6. Diccionario de placeholders ───────────────────────────────────────
+    // ── 7. Diccionario de placeholders ───────────────────────────────────────
     const placeholders: Record<string, string> = {
+      // Participante
       '{{nombre_participante}}':       nombreCompleto,
       '{{nombre_completo}}':           nombreCompleto,
+      '{{nombres}}':                   persona?.nombres   ?? '',
+      '{{apellidos}}':                 persona?.apellidos ?? '',
       '{{numero_documento}}':          persona?.numero_documento  ?? '',
       '{{tipo_documento}}':            persona?.tipo_documento    ?? '',
-      '{{evento_titulo}}':             evento?.titulo             ?? '',
       '{{correo_participante}}':       persona?.correo            ?? delivery.to_email,
       '{{telefono_participante}}':     (persona as any)?.telefono ?? '',
       '{{empresa_participante}}':      (persona as any)?.empresa  ?? '',
       '{{cargo_participante}}':        (persona as any)?.cargo    ?? '',
       '{{municipio_participante}}':    (persona as any)?.municipio    ?? '',
       '{{departamento_participante}}': (persona as any)?.departamento ?? '',
+
+      // Evento
+      '{{evento_titulo}}':             evento?.titulo ?? '',
+      '{{nombre_evento}}':             evento?.titulo ?? '',
+      '{{fecha_evento}}':              fechaEvento         ?? '',
+      '{{fecha_inicio_evento}}':       fechaInicioEvento,
+      '{{fecha_fin_evento}}':          fechaFinEvento,
+
+      // Certificado
       '{{codigo_certificado}}':        codigoCert,
       '{{url_descarga}}':              job.pdf_url,
       '{{url_verificacion}}':          verificacionUrl,
-      '{{fecha_evento}}':              fechaEvento ?? '',
+
+      // Institucional (para uso en cuerpo personalizado)
+      '{{logo_url}}':             sysConf?.logo_url            ?? '',
+      '{{telefono_contacto}}':    sysConf?.telefono_contacto   ?? '',
+      '{{email_contacto}}':       sysConf?.email_contacto      ?? '',
+      '{{direccion_contacto}}':   sysConf?.direccion_contacto  ?? '',
+      '{{sitio_web}}':            sysConf?.sitio_web            ?? '',
+      '{{facebook_url}}':         sysConf?.facebook_url         ?? '',
+      '{{instagram_url}}':        sysConf?.instagram_url        ?? '',
+      '{{linkedin_url}}':         sysConf?.linkedin_url         ?? '',
+      '{{x_url}}':                sysConf?.x_url                ?? '',
+      '{{tiktok_url}}':           sysConf?.tiktok_url           ?? '',
     };
 
     // ── 7. Resolver plantilla de correo (si el evento tiene plantilla_correo_id) ──

@@ -33,6 +33,7 @@ export async function saveEmailConfigAction(formData: FormData) {
       linkedin_url: formData.get("linkedin_url") as string,
       x_url: formData.get("x_url") as string,
       tiktok_url: formData.get("tiktok_url") as string,
+      whatsapp_numero: formData.get("whatsapp_numero") as string,
       mostrar_footer: formData.get("mostrar_footer") === "true",
       activo: formData.get("activo") !== "false",
       tenant_id: tenantId,  // ← EXPLÍCITO
