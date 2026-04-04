@@ -254,7 +254,7 @@ export async function inviteTeamMemberAction(email: string, role: 'admin' | 'mem
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const tenantId = user?.app_metadata?.tenant_id as string | undefined;
-    if (!tenantId) return { success: false, error: "No se pudo identificar el tenant." };
+    if (!user || !tenantId) return { success: false, error: "No se pudo identificar el usuario o el tenant." };
 
     // Verificar plan
     const serviceSupabase = makeServiceClient();
