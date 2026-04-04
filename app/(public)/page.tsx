@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { CalendarDays, LayoutDashboard, Zap, ShieldCheck, Mail, ArrowRight, CheckCircle2, ChevronRight, BarChart3, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import BenefitsSection from "@/components/BenefitsSection";
 
 export const dynamic = 'force-dynamic';
 
@@ -93,44 +94,8 @@ export default function Home() {
            </div>
         </section>
 
-        {/* Beneficios */}
-        <section id="beneficios" className="py-24 bg-slate-50">
-          <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-              <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">Todo lo que necesitas, <span className="text-primary italic">integrado.</span></h2>
-              <p className="text-lg text-slate-600 font-medium">Reemplaza múltiples herramientas dispersas por una única solución multi-tenant diseñada para escalar con tu organización.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Feature 1 */}
-              <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6">
-                  <Zap className="w-7 h-7 text-emerald-600" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Motor de Emisión Paralelo</h3>
-                <p className="text-slate-600 leading-relaxed font-medium">Genera cientos de miles de certificados PDF personalizados mediante nuestro motor paralelo basado en QStash, sin interrupciones ni bloqueos en tu sistema.</p>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
-                  <LayoutDashboard className="w-7 h-7 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Gestión B2B Multi-Tenant</h3>
-                <p className="text-slate-600 leading-relaxed font-medium">Cada empresa obtiene su propio espacio aislado (Tenant), con sus propias plantillas, cuotas, configuración de Mail y eventos.</p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mb-6">
-                  <ShieldCheck className="w-7 h-7 text-amber-600" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Firma y Envío Directo</h3>
-                <p className="text-slate-600 leading-relaxed font-medium">Conecta tu propia cuenta de Gmail corporativa para enviar automáticamente el certificado a su destinatario, manteniendo tu dominio personal.</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Beneficios — componente premium con animaciones */}
+        <BenefitsSection />
 
         {/* ¿Cómo funciona? */}
         <section id="como-funciona" className="py-24 bg-structural text-white relative overflow-hidden">
