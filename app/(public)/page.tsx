@@ -41,15 +41,12 @@ export default function Home() {
       </header>
 
       <main className="flex-1 pt-16">
-        {/* Superior Hero Section */}
-        <section className="relative overflow-hidden pt-20 pb-24 md:pt-32 md:pb-40 text-center px-4">
+        {/* Superior Hero Section — Compacto para primer viewport */}
+        <section className="relative overflow-hidden pt-16 pb-12 md:pt-24 md:pb-24 text-center px-4">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
           
-          <div className="container max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-bold text-primary mb-2 shadow-sm">
-              <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
-              La Plataforma Definitiva para Academias y Empresas
-            </div>
+          <div className="container max-w-5xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            {/* Badge eliminado para ahorrar espacio vertical */}
             
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
               Automatiza la <br className="hidden md:block"/>
@@ -75,23 +72,23 @@ export default function Home() {
               </Link>
             </div>
             
-            <div className="pt-10 flex items-center justify-center gap-6 text-sm font-medium text-slate-500">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-primary" /> Sin tarjeta requerida</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-primary" /> Setup en 2 minutos</span>
+            <div className="pt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-bold text-slate-500/80">
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Sin tarjeta requerida</span>
+              <div className="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></div>
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Setup inicial en minutos</span>
             </div>
           </div>
         </section>
 
         {/* Logo Cloud / Prueba Social */}
-        <section className="py-12 border-y border-slate-100 bg-white">
+        <section className="py-10 border-y border-slate-100 bg-white/50 backdrop-blur-sm">
            <div className="container max-w-7xl mx-auto px-4 text-center">
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Diseñado para la eficiencia operativa</p>
-              <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                {/* Simulated Logos */}
-                <span className="text-2xl font-black text-slate-800 tracking-tighter">AcmeCorp</span>
-                <span className="text-2xl font-black text-slate-800 tracking-tighter italic">EduTech Sys</span>
-                <span className="text-2xl font-black text-slate-800 tracking-tighter">GlobalForums</span>
-                <span className="text-2xl font-black text-slate-800 font-serif">Universidad X</span>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Confían en nuestra tecnología operativa</p>
+              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale contrast-125">
+                <span className="text-xl font-bold text-slate-900 tracking-tighter uppercase whitespace-nowrap">Cámaras de Comercio</span>
+                <span className="text-xl font-bold text-slate-900 tracking-tighter uppercase whitespace-nowrap">Instituciones Educativas</span>
+                <span className="text-xl font-bold text-slate-900 tracking-tighter uppercase whitespace-nowrap">Empresas de Capacitación</span>
+                <span className="text-xl font-bold text-slate-900 tracking-tighter uppercase whitespace-nowrap">Organizaciones y Eventos</span>
               </div>
            </div>
         </section>
