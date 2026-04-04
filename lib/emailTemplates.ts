@@ -62,7 +62,7 @@ export interface CertificateEmailData {
 // Luego reemplaza {{placeholder}} simples.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function processTemplate(template: string, vars: Record<string, string>): string {
+export function processTemplate(template: string, vars: Record<string, string>): string {
   let result = template;
   let prev = '';
 

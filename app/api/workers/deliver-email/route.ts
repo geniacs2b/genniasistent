@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import {
   buildCertificateEmail,
   resolvePlaceholders,
+  processTemplate,
   type TenantBranding,
   type EmailSistemaConfig,
 } from "@/lib/emailTemplates";
@@ -205,41 +206,90 @@ async function handler(req: NextRequest) {
       '{{tiktok_url}}':           sysConf?.tiktok_url           ?? '',
     };
 
-    // ── 7. Resolver plantilla de correo (si el evento tiene plantilla_correo_id) ──
+    // ── 7. Resolver plantilla de correo (fuente oficial: plantillas_correo) ─────
+    // Columnas reales en plantillas_correo: asunto, mensaje_html
+    // IMPORTANTE: 'cuerpo_html' NO existe — la columna real es 'mensaje_html'.
     let plantillaAsunto: string | null = null;
     let plantillaCuerpo: string | null = null;
 
     if (evento?.plantilla_correo_id) {
-      const { data: plantillaCorreo } = await supabase
+      const { data: plantillaCorreo, error: plantillaErr } = await supabase
         .from('plantillas_correo')
-        .select('asunto, cuerpo_html')
+        .select('asunto, mensaje_html')
         .eq('id', evento.plantilla_correo_id)
         .single();
 
-      plantillaAsunto = plantillaCorreo?.asunto   ?? null;
-      plantillaCuerpo = plantillaCorreo?.cuerpo_html ?? null;
-      console.log(`[Worker Email] Plantilla correo cargada: id=${evento.plantilla_correo_id} | asunto=${!!plantillaAsunto} | cuerpo=${!!plantillaCuerpo}`);
+      if (plantillaErr) {
+        console.warn(`[Worker Email] Error cargando plantilla ${evento.plantilla_correo_id}: ${plantillaErr.message}`);
+      } else {
+        plantillaAsunto = plantillaCorreo?.asunto      ?? null;
+        plantillaCuerpo = plantillaCorreo?.mensaje_html ?? null;
+        console.log(`[Worker Email] Plantilla correo cargada: id=${evento.plantilla_correo_id} | asunto=${!!plantillaAsunto} | cuerpo=${!!plantillaCuerpo} | chars=${plantillaCuerpo?.length ?? 0}`);
+      }
     }
 
-    // ── 8. Resolver asunto (prioridad: evento → plantilla → fallback) ─────────
+    // ── 8. Asunto: FUENTE OFICIAL = plantillas_correo.asunto (con fallback a evento y genérico) ───
+    // Prioridad: plantilla > evento.asunto_correo > fallback genérico
     const asuntoRaw =
-      (evento?.asunto_correo?.trim() || null) ??
-      (plantillaAsunto?.trim()       || null) ??
+      (plantillaAsunto?.trim()          || null) ??
+      (evento?.asunto_correo?.trim()    || null) ??
       (evento?.titulo ? `Tu certificado de "${evento.titulo}" está listo` : 'Tu certificado de participación está listo');
 
     const asunto = resolvePlaceholders(asuntoRaw, placeholders);
-    console.log(`[Worker Email] Asunto resuelto: "${asunto}"`);
+    console.log(`[Worker Email] Asunto resuelto: "${asunto}" | fuente=${plantillaAsunto ? 'plantilla_correo' : evento?.asunto_correo ? 'evento' : 'fallback'}`);
 
-    // ── 9. Resolver cuerpo HTML (prioridad: evento → plantilla → template por defecto) ──
+    // ── 9. Cuerpo: FUENTE OFICIAL = plantillas_correo.mensaje_html (con fallback a evento y default) ─
+    // Prioridad: plantilla > evento.mensaje_correo_html > undefined (usa el default del layout)
     const cuerpoRaw =
-      (evento?.mensaje_correo_html?.trim() || null) ??
-      (plantillaCuerpo?.trim()             || null);
+      (plantillaCuerpo?.trim()              || null) ??
+      (evento?.mensaje_correo_html?.trim()  || null);
 
-    const cuerpoHtml = cuerpoRaw
-      ? resolvePlaceholders(cuerpoRaw, placeholders)
-      : undefined;
+    // El cuerpo de la DB puede contener bloques {{#if var}}...{{/if}}.
+    // Primero se procesa el motor de condicionales, luego se reemplazan los placeholders simples.
+    // Con solo resolvePlaceholders (regex de {{clave}}), los bloques {{#if}} y {{/if}} quedan raw.
+    let cuerpoHtml: string | undefined;
+    if (cuerpoRaw) {
+      // Construir mapa de variables para processTemplate (usa claves SIN double-braces)
+      const templateVars: Record<string, string> = {
+        nombre_participante:       nombreCompleto,
+        nombre_completo:           nombreCompleto,
+        nombres:                   persona?.nombres   ?? '',
+        apellidos:                 persona?.apellidos ?? '',
+        numero_documento:          persona?.numero_documento  ?? '',
+        tipo_documento:            persona?.tipo_documento    ?? '',
+        correo_participante:       persona?.correo            ?? delivery.to_email,
+        telefono_participante:     (persona as any)?.telefono ?? '',
+        empresa_participante:      (persona as any)?.empresa  ?? '',
+        cargo_participante:        (persona as any)?.cargo    ?? '',
+        municipio_participante:    (persona as any)?.municipio    ?? '',
+        departamento_participante: (persona as any)?.departamento ?? '',
+        evento_titulo:             evento?.titulo ?? '',
+        nombre_evento:             evento?.titulo ?? '',
+        fecha_evento:              fechaEvento         ?? '',
+        fecha_inicio_evento:       fechaInicioEvento,
+        fecha_fin_evento:          fechaFinEvento,
+        codigo_certificado:        codigoCert,
+        url_descarga:              job.pdf_url,
+        url_verificacion:          verificacionUrl,
+        logo_url:                  sysConf?.logo_url            ?? '',
+        telefono_contacto:         sysConf?.telefono_contacto   ?? '',
+        email_contacto:            sysConf?.email_contacto      ?? '',
+        direccion_contacto:        sysConf?.direccion_contacto  ?? '',
+        sitio_web:                 sysConf?.sitio_web            ?? '',
+        facebook_url:              sysConf?.facebook_url         ?? '',
+        instagram_url:             sysConf?.instagram_url        ?? '',
+        linkedin_url:              sysConf?.linkedin_url         ?? '',
+        x_url:                     sysConf?.x_url                ?? '',
+        tiktok_url:                sysConf?.tiktok_url           ?? '',
+      };
 
-    console.log(`[Worker Email] Cuerpo: ${cuerpoHtml ? `personalizado (${cuerpoHtml.length} chars)` : 'template por defecto'}`);
+      // Paso 1: evaluar bloques {{#if var}}...{{/if}} con el motor de plantillas
+      const afterConditionals = processTemplate(cuerpoRaw, templateVars);
+      // Paso 2: reemplazar {{placeholder}} simples restantes (ambos formatos)
+      cuerpoHtml = resolvePlaceholders(afterConditionals, placeholders);
+    }
+
+    console.log(`[Worker Email] Cuerpo: ${cuerpoHtml ? `personalizado (${cuerpoHtml.length} chars) desde ${plantillaCuerpo ? 'plantilla_correo' : 'evento'}` : 'layout por defecto'}`);
 
     // ── 10. Construir HTML del correo ────────────────────────────────────────
     const htmlBody = buildCertificateEmail(
