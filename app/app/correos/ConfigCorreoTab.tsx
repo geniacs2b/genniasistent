@@ -106,7 +106,6 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
   // Colores del correo
   const [headerBgColor,     setHeaderBgColor]     = useState<string>(config?.header_bg_color     || '#27498b');
   const [headerBgSecondary, setHeaderBgSecondary] = useState<string>(config?.header_bg_secondary || '#3f67d8');
-  const [headerTextColor,   setHeaderTextColor]   = useState<string>(config?.header_text_color   || '#ffffff');
   const [footerBgColor,     setFooterBgColor]     = useState<string>(config?.footer_bg_color     || '#1e2847');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -120,7 +119,6 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
     formData.set("whatsapp_numero",     numLimpio ? `${whatsappPais}${numLimpio}` : '');
     formData.set("header_bg_color",     headerBgColor);
     formData.set("header_bg_secondary", headerBgSecondary);
-    formData.set("header_text_color",   headerTextColor);
     formData.set("footer_bg_color",     footerBgColor);
 
     try {
@@ -366,13 +364,10 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
             {/* Mini header */}
             <div
               className="h-14 flex items-center justify-center"
-              style={{ background: headerBgSecondary
-                ? `linear-gradient(90deg,${headerBgColor} 0%,${headerBgSecondary} 100%)`
-                : headerBgColor }}
+              style={{ background: `linear-gradient(90deg,${headerBgColor} 0%,${headerBgSecondary} 100%)` }}
             >
-              <span className="text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full"
-                    style={{ color: headerTextColor, background: 'rgba(255,255,255,0.14)' }}>
-                Certificado de Participación
+              <span className="text-[10px] font-semibold tracking-widest text-white/60 uppercase">
+                Logo institucional
               </span>
             </div>
             {/* Mini body */}
@@ -433,28 +428,6 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
                 />
               </div>
               <p className="text-[11px] text-slate-400">Deja igual al principal para color sólido.</p>
-            </div>
-
-            {/* Color del texto del header */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Color del texto del header
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={headerTextColor}
-                  onChange={e => setHeaderTextColor(e.target.value)}
-                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white dark:bg-slate-900 shrink-0"
-                />
-                <Input
-                  value={headerTextColor}
-                  onChange={e => setHeaderTextColor(e.target.value)}
-                  className="h-11 font-mono text-sm bg-white/70 rounded-xl border-slate-200 uppercase flex-1"
-                  maxLength={7}
-                  placeholder="#ffffff"
-                />
-              </div>
             </div>
 
             {/* Color del footer */}

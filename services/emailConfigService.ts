@@ -6,19 +6,16 @@ export const emailConfigService = {
    */
   async getSystemConfig() {
     const supabase = createClient();
-    const { data, error } = await supabase.rpc('obtener_configuracion_correo_sistema_activa');
-    if (error) {
-      // Fallback a consulta directa si el RPC falla o no es accesible por alguna razón
-      const { data: directData } = await supabase
-        .from('configuracion_correo_sistema')
-        .select('*')
-        .eq('activo', true)
-        .limit(1)
-        .single();
-      return directData;
-    }
-    // Si data es un arreglo (común en RPCs que devuelven TABLE), tomar el primer elemento
-    return Array.isArray(data) ? data[0] : data;
+    // Consulta directa con select('*') para garantizar que siempre se retornan
+    // todas las columnas, incluyendo las agregadas posteriormente (colores, toggles, etc.).
+    // El RPC anterior no se actualiza automáticamente al agregar columnas a la tabla.
+    const { data } = await supabase
+      .from('configuracion_correo_sistema')
+      .select('*')
+      .eq('activo', true)
+      .limit(1)
+      .single();
+    return data;
   },
 
   /**
