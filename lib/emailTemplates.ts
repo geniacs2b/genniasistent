@@ -2,8 +2,8 @@
  * emailTemplates.ts
  * ---------------------------------------------------------------------------
  * Layout fijo único para todos los correos de certificados.
- * El diseño visual NUNCA cambia — solo varían: asunto, cuerpo (mensaje_renderizado)
- * y la visibilidad de iconos/redes/contacto según los datos disponibles.
+ * Solo varían: asunto, cuerpo (mensaje_renderizado), visibilidad de secciones
+ * y colores del header, según la configuración del tenant.
  * ---------------------------------------------------------------------------
  */
 
@@ -17,260 +17,375 @@ export interface TenantBranding {
 }
 
 export interface EmailSistemaConfig {
+  // Identidad
   nombre_remitente?: string | null;
   email_respuesta?: string | null;
   logo_url?: string | null;
   firma_html?: string | null;
   footer_html?: string | null;
+
+  // Contacto
   telefono_contacto?: string | null;
   email_contacto?: string | null;
   direccion_contacto?: string | null;
   sitio_web?: string | null;
-  /** Número de WhatsApp (ej: +573118121136). Se construye el enlace wa.me automáticamente. */
+  /** Número de WhatsApp (ej: +573118121136). El enlace wa.me se construye automáticamente. */
   whatsapp_numero?: string | null;
+
+  // Redes sociales
   facebook_url?: string | null;
   instagram_url?: string | null;
   linkedin_url?: string | null;
   x_url?: string | null;
   tiktok_url?: string | null;
+
+  // ── Colores configurables ─────────────────────────────────────────────────
+  /** Color principal del header. Ej: '#27498b'. Si se omite → azul institucional. */
+  header_bg_color?: string | null;
+  /** Color secundario para gradiente. Si se omite → se usa solo header_bg_color. */
+  header_bg_secondary?: string | null;
+  /** Color del texto/iconos del header. Default: '#ffffff'. */
+  header_text_color?: string | null;
+  /** Color de fondo del footer legal. Default: '#1e2847'. */
+  footer_bg_color?: string | null;
+
+  // ── Toggles de secciones ─────────────────────────────────────────────────
+  /** Badge "Certificado de Participación" en el header. Default: true. */
+  mostrar_titulo_certificado?: boolean | null;
+  /** "¡Felicitaciones!" + nombre del participante en grande. Default: true. */
+  mostrar_saludo_destacado?: boolean | null;
+  /** Bloque "Evento Certificado" con título y fecha. Default: true. */
+  mostrar_resumen_evento?: boolean | null;
+  /** Bloque con el código del certificado. Default: true. */
+  mostrar_codigo_certificado?: boolean | null;
+  /** Botón "Descargar mi Certificado". Default: true. */
+  mostrar_boton_descarga?: boolean | null;
+  /** Botón "Verificar autenticidad". Default: true. */
+  mostrar_boton_verificacion?: boolean | null;
+  /** Bloque de firma/contacto institucional en texto. Default: true. */
+  mostrar_bloque_contacto?: boolean | null;
+  /** Fila de iconos de redes sociales. Default: true si hay datos, false si no. */
+  mostrar_bloque_redes?: boolean | null;
+  /** Footer legal oscuro al final. Default: true. */
   mostrar_footer?: boolean;
 }
 
 export interface CertificateEmailData {
-  /** Nombre completo del destinatario (se muestra como título prominente) */
+  /** Nombre completo del destinatario */
   nombre_completo: string;
   /** Nombre del evento */
   nombre_evento: string;
-  /** Fecha del evento ya formateada */
+  /** Fecha ya formateada */
   fecha_evento?: string;
-  /** URL pública del PDF del certificado */
+  /** URL pública del PDF */
   pdf_url: string;
-  /** Código legible del certificado */
+  /** Código del certificado */
   codigo_certificado: string;
-  /** URL de verificación del certificado */
+  /** URL de verificación */
   verificacion_url?: string;
   /**
-   * HTML del cuerpo del mensaje ya con placeholders resueltos.
-   * Si no se provee, se usa el texto por defecto.
+   * HTML del cuerpo con placeholders ya resueltos.
+   * Si no se provee se usa el texto por defecto.
    */
   cuerpo_html?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MOTOR DE PLANTILLAS
-// Procesa bloques {{#if var}}...{{/if}} y {{#if var}}...{{else}}...{{/if}}
-// Luego reemplaza {{placeholder}} simples.
+// MOTOR DE PLANTILLAS — parser recursivo correcto para bloques anidados
+//
+// Problema del enfoque regex: [\s\S]*? (no-greedy) siempre machea el primer
+// {{/if}} que encuentra. En bloques anidados ese es el {{/if}} del bloque
+// INTERIOR, dejando el {{/if}} del exterior huérfano y visible en el HTML.
+//
+// Solución: parser de descenso recursivo que lleva conteo de profundidad
+// (depth) y localiza el {{/if}} correspondiente con precisión.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function processTemplate(template: string, vars: Record<string, string>): string {
-  let result = template;
-  let prev = '';
+/**
+ * Evalúa todos los bloques {{#if var}}...{{/if}} y {{#if var}}...{{else}}...{{/if}}
+ * en `text`, con soporte correcto para anidamiento ilimitado.
+ * Llama a sí misma recursivamente sobre el contenido seleccionado.
+ */
+function processBlock(text: string, vars: Record<string, string>): string {
+  let output = '';
+  let pos = 0;
 
-  // Itera hasta que no haya más bloques {{#if}} sin resolver.
-  // El regex no-greedy procesa siempre el bloque más interno primero.
-  while (result !== prev) {
-    prev = result;
-    result = result.replace(
-      /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
-      (_match, varName: string, content: string) => {
-        const value  = vars[varName] ?? '';
-        const truthy = value.length > 0;
+  while (pos < text.length) {
+    // Buscar el próximo {{#if
+    const ifStart = text.indexOf('{{#if ', pos);
+    if (ifStart === -1) {
+      output += text.slice(pos);
+      break;
+    }
 
-        const elseIdx = content.indexOf('{{else}}');
-        if (elseIdx !== -1) {
-          return truthy
-            ? content.slice(0, elseIdx)
-            : content.slice(elseIdx + 8); // 8 === '{{else}}'.length
-        }
-        return truthy ? content : '';
-      },
-    );
+    // Texto antes de este bloque — pasar tal cual
+    output += text.slice(pos, ifStart);
+
+    // Leer el tag {{#if varname}}
+    const tagEnd = text.indexOf('}}', ifStart + 6);
+    if (tagEnd === -1) { output += text.slice(ifStart); break; }
+
+    const varName   = text.slice(ifStart + 6, tagEnd).trim();
+    const bodyStart = tagEnd + 2;  // primer caracter del cuerpo del bloque
+    let   depth     = 1;           // profundidad de anidamiento
+    let   elseAt    = -1;          // posición de {{else}} a depth=1
+    let   closeAt   = -1;          // posición del {{/if}} que cierra este bloque
+    let   cur       = bodyStart;
+
+    // Recorrer hasta encontrar el {{/if}} que corresponde a este {{#if}}
+    while (cur < text.length) {
+      const nOpen  = text.indexOf('{{#if ',   cur);
+      const nClose = text.indexOf('{{/if}}',  cur);
+      const nElse  = text.indexOf('{{else}}', cur);
+
+      if (nClose === -1) break; // bloque sin cerrar — salir
+
+      // ¿Cuál token aparece primero?
+      let first = nClose;
+      if (nOpen !== -1 && nOpen < first) first = nOpen;
+      if (nElse !== -1 && nElse < first) first = nElse;
+
+      if (first === nOpen) {
+        // Abre un bloque anidado — incrementar profundidad
+        depth++;
+        cur = nOpen + 6;
+      } else if (first === nElse) {
+        // {{else}} — solo es nuestro si estamos a depth 1
+        if (depth === 1) elseAt = nElse;
+        cur = nElse + 8; // 8 = '{{else}}'.length
+      } else {
+        // {{/if}} — decrementar profundidad
+        depth--;
+        if (depth === 0) { closeAt = nClose; break; } // encontramos el cierre correcto
+        cur = nClose + 7; // 7 = '{{/if}}'.length
+      }
+    }
+
+    if (closeAt === -1) {
+      // Bloque sin cerrar — incluir el texto original sin procesar
+      output += text.slice(ifStart);
+      break;
+    }
+
+    // Evaluar la condición
+    const truthy = (vars[varName] ?? '').length > 0;
+
+    if (truthy) {
+      const thenContent = elseAt !== -1
+        ? text.slice(bodyStart, elseAt)
+        : text.slice(bodyStart, closeAt);
+      output += processBlock(thenContent, vars); // recursivo
+    } else if (elseAt !== -1) {
+      const elseContent = text.slice(elseAt + 8, closeAt); // +8 = '{{else}}'.length
+      output += processBlock(elseContent, vars); // recursivo
+    }
+    // Si falsy y sin else → no emitir nada
+
+    pos = closeAt + 7; // avanzar después del {{/if}}
   }
 
-  // Reemplazar todos los {{placeholder}} restantes
-  return result.replace(/\{\{(\w+)\}\}/g, (_m, key) => vars[key] ?? '');
+  return output;
+}
+
+/**
+ * Procesa una plantilla completa:
+ * 1. Evalúa todos los bloques {{#if}}...{{/if}} (con anidamiento correcto)
+ * 2. Sustituye todos los {{placeholder}} simples restantes
+ */
+export function processTemplate(template: string, vars: Record<string, string>): string {
+  const withBlocks = processBlock(template, vars);
+  return withBlocks.replace(/\{\{(\w+)\}\}/g, (_m, key) => vars[key] ?? '');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LAYOUT BASE FIJO — nunca cambia entre correos
+// LAYOUT BASE FIJO
+// Cada sección está envuelta en {{#if show_X}} para poder desactivarla.
+// El header usa {{header_bg}} para color configurable.
+// El footer queda DENTRO del card para integrarse visualmente.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BASE_EMAIL_TEMPLATE = `<div style="margin:0; padding:30px 15px; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;">
   <div style="max-width:760px; margin:0 auto; background-color:#ffffff; border-radius:18px; overflow:hidden; color:#1f2a44; box-shadow:0 10px 30px rgba(0,0,0,0.06);">
 
-    <!-- HEADER -->
-    <div style="background:linear-gradient(90deg,#27498b 0%,#3f67d8 100%); padding:32px 30px 26px 30px; text-align:center;">
+    <!-- ═══ HEADER ═══ -->
+    <div style="background:{{header_bg}}; padding:32px 30px 26px 30px; text-align:center;">
+
       {{#if logo_url}}
       <div style="margin-bottom:18px;">
-        <img
-          src="{{logo_url}}"
-          alt="Logo institucional"
-          style="max-width:260px; width:100%; height:auto; display:block; margin:0 auto;"
-        />
+        <img src="{{logo_url}}" alt="Logo institucional"
+          style="max-width:260px; width:100%; height:auto; display:block; margin:0 auto;" />
       </div>
       {{/if}}
 
-      <div style="display:inline-block; background:rgba(255,255,255,0.14); border-radius:999px; padding:14px 34px;">
-        <span style="font-size:19px; font-weight:700; letter-spacing:1px; color:#ffffff; text-transform:uppercase;">
+      {{#if show_titulo_cert}}
+      <div style="display:inline-block; background:rgba(255,255,255,0.14); border-radius:999px; padding:12px 30px;">
+        <span style="font-size:17px; font-weight:700; letter-spacing:1px; color:{{header_text_color}}; text-transform:uppercase;">
           Certificado de Participaci&#243;n
         </span>
       </div>
+      {{/if}}
+
     </div>
 
-    <!-- BODY -->
-    <div style="padding:42px 46px 28px 46px;">
+    <!-- ═══ BODY ═══ -->
+    <div style="padding:42px 46px 36px 46px;">
 
-      <div style="margin-bottom:10px; color:#6366f1; font-size:19px; font-weight:700; letter-spacing:0.5px;">
+      {{#if show_saludo}}
+      <div style="margin-bottom:8px; color:#6366f1; font-size:18px; font-weight:700; letter-spacing:0.5px;">
         &#161;Felicitaciones!
       </div>
-
-      <div style="margin-bottom:22px; color:#111833; font-size:31px; line-height:1.2; font-weight:800;">
+      <div style="margin-bottom:24px; color:#111833; font-size:29px; line-height:1.2; font-weight:800;">
         {{nombre_participante}}
       </div>
+      {{/if}}
 
-      <!-- MENSAJE DIN&#193;MICO -->
-      <div style="font-size:18px; line-height:1.75; color:#38445c; text-align:justify;">
+      <!-- MENSAJE PRINCIPAL — siempre visible, protagonista del correo -->
+      <div style="font-size:16px; line-height:1.8; color:#38445c;">
         {{mensaje_renderizado}}
       </div>
 
-      <!-- RESUMEN EVENTO -->
-      <div style="margin-top:28px; background:#f1f3ff; border-left:6px solid #4a6cf0; border-radius:0 18px 18px 0; padding:26px 28px;">
-        <div style="font-size:15px; font-weight:800; letter-spacing:1px; color:#5c63e6; text-transform:uppercase; margin-bottom:10px;">
+      {{#if show_resumen_evento}}
+      <div style="margin-top:28px; background:#f1f3ff; border-left:5px solid #4a6cf0; border-radius:0 14px 14px 0; padding:22px 26px;">
+        <div style="font-size:12px; font-weight:800; letter-spacing:1.5px; color:#5c63e6; text-transform:uppercase; margin-bottom:8px;">
           Evento Certificado
         </div>
-        <div style="font-size:21px; font-weight:800; color:#213a70; margin-bottom:8px;">
+        <div style="font-size:19px; font-weight:800; color:#213a70; margin-bottom:6px; line-height:1.3;">
           {{evento_titulo}}
         </div>
-        <div style="font-size:16px; color:#6b7280; line-height:1.5;">
+        {{#if fecha_evento}}
+        <div style="font-size:14px; color:#6b7280; line-height:1.5;">
           {{fecha_evento}}
         </div>
+        {{/if}}
       </div>
+      {{/if}}
 
-      <!-- CODIGO -->
-      <div style="margin-top:34px; border-top:1px solid #e7ebf2; padding-top:34px;">
-        <div style="border:1px solid #dce3ef; border-radius:18px; padding:26px 20px; text-align:center; background:#fafbfd;">
-          <div style="font-size:14px; font-weight:800; letter-spacing:2px; color:#95a1b8; text-transform:uppercase; margin-bottom:14px;">
+      {{#if show_codigo}}
+      <div style="margin-top:28px; border-top:1px solid #e7ebf2; padding-top:28px;">
+        <div style="border:1px solid #dce3ef; border-radius:14px; padding:22px 20px; text-align:center; background:#fafbfd;">
+          <div style="font-size:11px; font-weight:800; letter-spacing:2px; color:#95a1b8; text-transform:uppercase; margin-bottom:12px;">
             C&#243;digo de Certificado
           </div>
-          <div style="font-size:22px; font-weight:800; letter-spacing:3px; color:#233768;">
+          <div style="font-size:20px; font-weight:800; letter-spacing:3px; color:#233768; font-family:monospace;">
             {{codigo_certificado}}
           </div>
         </div>
       </div>
+      {{/if}}
 
-      <!-- BOTONES -->
-      <div style="margin-top:34px; text-align:center;">
+      {{#if show_boton_descarga}}
+      <div style="margin-top:28px; text-align:center;">
         <a href="{{url_descarga}}" target="_blank"
-          style="display:inline-block; background:linear-gradient(90deg,#3558d8 0%,#3b63ec 100%); color:#ffffff; text-decoration:none; font-size:18px; font-weight:800; padding:18px 34px; border-radius:18px; min-width:320px; box-shadow:0 8px 18px rgba(53,88,216,0.24);">
+          style="display:inline-block; background:linear-gradient(90deg,{{header_bg_btn_start}} 0%,{{header_bg_btn_end}} 100%); color:#ffffff; text-decoration:none; font-size:17px; font-weight:800; padding:16px 32px; border-radius:14px; min-width:300px; box-shadow:0 6px 16px rgba(53,88,216,0.22);">
           &#11015; Descargar mi Certificado
         </a>
       </div>
+      {{/if}}
 
-      <div style="margin-top:16px; text-align:center;">
+      {{#if show_boton_verificacion}}
+      <div style="margin-top:14px; text-align:center;">
         <a href="{{url_verificacion}}" target="_blank"
-          style="display:inline-block; background:#ffffff; color:#3a63ea; text-decoration:none; font-size:16px; font-weight:800; padding:16px 28px; border-radius:15px; min-width:280px; border:2px solid #b8ccff;">
+          style="display:inline-block; background:#ffffff; color:#3a63ea; text-decoration:none; font-size:14px; font-weight:700; padding:13px 26px; border-radius:12px; min-width:260px; border:1.5px solid #c7d8ff;">
           Verificar autenticidad del certificado
         </a>
       </div>
+      {{/if}}
 
-      <!-- FIRMA / CONTACTO BASE -->
-      <div style="margin-top:42px; padding-top:30px; border-top:1px solid #e7ebf2; font-size:15px; line-height:1.7; color:#4b5563;">
+      {{#if show_bloque_contacto}}
+      <!-- FIRMA / CONTACTO -->
+      <div style="margin-top:36px; padding-top:28px; border-top:1px solid #e7ebf2; font-size:14px; line-height:1.7; color:#4b5563;">
         {{#if firma_html}}
           {{firma_html}}
         {{else}}
-          <p style="margin:0 0 8px 0; font-size:16px; font-weight:800; color:#374151;">
-            {{org_name}}
-          </p>
-
+          <p style="margin:0 0 6px 0; font-size:15px; font-weight:800; color:#374151;">{{org_name}}</p>
           {{#if direccion_contacto}}
-          <p style="margin:0 0 8px 0;">{{direccion_contacto}}</p>
+          <p style="margin:0 0 4px 0; color:#6b7280;">{{direccion_contacto}}</p>
           {{/if}}
-
           {{#if telefono_contacto}}
-          <p style="margin:0 0 8px 0;">Tel: {{telefono_contacto}}</p>
+          <p style="margin:0 0 4px 0; color:#6b7280;">Tel: {{telefono_contacto}}</p>
           {{/if}}
-
+          {{#if email_contacto}}
+          <p style="margin:0 0 4px 0;">
+            <a href="mailto:{{email_contacto}}" style="color:#2563eb; text-decoration:none;">{{email_contacto}}</a>
+          </p>
+          {{/if}}
           {{#if sitio_web}}
-          <p style="margin:0 0 8px 0;">
-            <a href="{{sitio_web}}" style="color:#2563eb; text-decoration:none;">{{sitio_web}}</a>
+          <p style="margin:0 0 4px 0;">
+            <a href="{{sitio_web}}" style="color:#2563eb; text-decoration:none;" target="_blank">{{sitio_web}}</a>
           </p>
           {{/if}}
         {{/if}}
       </div>
+      {{/if}}
+
     </div>
 
-    <!-- REDES / CONTACTO VISUAL -->
-    {{#if mostrar_bloque_contacto_redes}}
-    <div style="padding:18px 40px 28px 40px; text-align:center;">
+    <!-- ═══ REDES / CONTACTO VISUAL ═══ -->
+    {{#if show_bloque_redes}}
+    <div style="padding:16px 40px 24px 40px; text-align:center; border-top:1px solid #eef0f5;">
 
-      <div style="text-align:center; margin-bottom:12px;">
-
+      <div style="text-align:center; margin-bottom:10px;">
         {{#if whatsapp_url}}
-        <a href="{{whatsapp_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/1384/1384023.png" alt="WhatsApp" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{whatsapp_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/1384/1384023.png" alt="WhatsApp" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if email_contacto}}
-        <a href="mailto:{{email_contacto}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="mailto:{{email_contacto}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if sitio_web}}
-        <a href="{{sitio_web}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Sitio web" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{sitio_web}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Sitio web" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if facebook_url}}
-        <a href="{{facebook_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/20/20837.png" alt="Facebook" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{facebook_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/20/20837.png" alt="Facebook" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if instagram_url}}
-        <a href="{{instagram_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/87/87390.png" alt="Instagram" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{instagram_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/87/87390.png" alt="Instagram" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if linkedin_url}}
-        <a href="{{linkedin_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/61/61109.png" alt="LinkedIn" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{linkedin_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/61/61109.png" alt="LinkedIn" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if x_url}}
-        <a href="{{x_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/5968/5968830.png" alt="X" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{x_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/5968/5968830.png" alt="X" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
-
         {{#if tiktok_url}}
-        <a href="{{tiktok_url}}" target="_blank" style="display:inline-block; margin:8px 12px; text-decoration:none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" alt="TikTok" width="28" height="28" style="display:block; width:28px; height:28px; border:0;" />
+        <a href="{{tiktok_url}}" target="_blank" style="display:inline-block; margin:6px 10px; text-decoration:none;">
+          <img src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" alt="TikTok" width="26" height="26" style="display:block; width:26px; height:26px; border:0;" />
         </a>
         {{/if}}
       </div>
 
       {{#if direccion_contacto}}
-      <div style="margin-top:10px; font-size:14px; color:#5b6578; line-height:1.6;">
-        {{direccion_contacto}}
-      </div>
+      <div style="font-size:12px; color:#8b93a7; line-height:1.5;">{{direccion_contacto}}</div>
       {{/if}}
+
     </div>
     {{/if}}
 
-    <!-- LEGAL -->
-    {{#if mostrar_footer}}
-    <div style="background:#202a56; color:#ffffff; padding:18px 28px; font-size:11px; line-height:1.65; text-align:justify;">
-      Este es un correo generado autom&#225;ticamente por el sistema de {{org_name}}.
-      Por favor, no responda a este mensaje, ya que este buz&#243;n no se encuentra habilitado para recibir respuestas.
-      Si requiere informaci&#243;n adicional o atenci&#243;n personalizada, puede comunicarse a trav&#233;s de nuestros canales oficiales o escribir a nuestro correo institucional.
-      <br><br>
-      <strong>Aviso de confidencialidad:</strong> Este mensaje y sus anexos pueden contener informaci&#243;n confidencial o privilegiada destinada exclusivamente para el destinatario.
-      Si usted no es el destinatario previsto, se proh&#237;be su uso, divulgaci&#243;n o copia. Si recibi&#243; este mensaje por error, por favor notif&#237;quelo al remitente y elim&#237;nelo inmediatamente de su sistema.
+    <!-- ═══ FOOTER LEGAL — dentro del card, bordes inferiores redondeados ═══ -->
+    {{#if show_footer_legal}}
+    <div style="background:{{footer_bg}}; color:#c8d0e0; padding:20px 32px; font-size:10.5px; line-height:1.7; text-align:justify; border-radius:0 0 18px 18px;">
+      <p style="margin:0 0 8px 0;">
+        Este es un correo generado autom&#225;ticamente por el sistema de <strong style="color:#e0e5f0;">{{org_name}}</strong>.
+        Por favor no responda a este mensaje, ya que este buz&#243;n no est&#225; habilitado para recibir respuestas.
+        Si requiere informaci&#243;n adicional, comun&#237;quese a trav&#233;s de nuestros canales oficiales.
+      </p>
+      <p style="margin:0; color:#8b95b0;">
+        <strong>Aviso de confidencialidad:</strong> Este mensaje puede contener informaci&#243;n confidencial destinada exclusivamente al destinatario.
+        Si recibi&#243; este correo por error, por favor elim&#237;nelo e informe al remitente.
+      </p>
     </div>
     {{/if}}
 
@@ -291,25 +406,41 @@ export function resolvePlaceholders(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HELPER: convierte un flag booleano a 'true' o '' para el motor de plantillas
+// ─────────────────────────────────────────────────────────────────────────────
+function on(v: boolean | null | undefined, def: boolean): string {
+  return (v ?? def) ? 'true' : '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PLANTILLA PRINCIPAL: correo de certificado
-// Layout base fijo — solo cambian contenido y visibilidad de secciones.
+// Layout fijo — solo cambian contenido, visibilidad de secciones y colores.
 // ─────────────────────────────────────────────────────────────────────────────
 export function buildCertificateEmail(
   data: CertificateEmailData,
   config: EmailSistemaConfig,
   branding: TenantBranding,
 ): string {
-  const logoUrl  = config.logo_url  || branding.logo_url || '';
-  const orgName  = config.nombre_remitente || branding.name || 'Nuestra Organización';
-  const mostrarFooter = config.mostrar_footer !== false;
+  const logoUrl = config.logo_url || branding.logo_url || '';
+  const orgName = config.nombre_remitente || branding.name || 'Nuestra Organización';
 
-  // Construir URL de WhatsApp desde el número (strips todo excepto dígitos y +)
+  // ── Header colors ──────────────────────────────────────────────────────────
+  const bgStart = config.header_bg_color ?? '#27498b';
+  const bgEnd   = config.header_bg_secondary ?? '#3f67d8';
+  const headerBg = config.header_bg_color
+    ? config.header_bg_secondary
+      ? `linear-gradient(90deg,${bgStart} 0%,${bgEnd} 100%)`
+      : bgStart
+    : `linear-gradient(90deg,#27498b 0%,#3f67d8 100%)`;
+  const headerTextColor = config.header_text_color || '#ffffff';
+
+  // ── WhatsApp URL ───────────────────────────────────────────────────────────
   const whatsappUrl = config.whatsapp_numero
     ? `https://wa.me/${config.whatsapp_numero.replace(/[^\d]/g, '')}`
     : '';
 
-  // El bloque de redes/contacto visual solo aparece si hay al menos un dato
-  const mostrarBloqueRedes = !!(
+  // ── Visibilidad del bloque de redes ────────────────────────────────────────
+  const hayRedes = !!(
     whatsappUrl            ||
     config.email_contacto  ||
     config.sitio_web       ||
@@ -321,21 +452,37 @@ export function buildCertificateEmail(
     config.direccion_contacto
   );
 
-  // Mensaje del cuerpo: personalizado desde evento/plantilla o texto por defecto
+  // ── Cuerpo del mensaje ─────────────────────────────────────────────────────
   const mensajeRenderizado = data.cuerpo_html?.trim() ||
-    'Con mucho gusto te informamos que has completado exitosamente tu participación en el evento indicado. Tu certificado está disponible para descarga.';
+    'Con mucho gusto te informamos que has completado exitosamente tu participaci&#243;n en el evento indicado. Tu certificado est&#225; disponible para descarga.';
 
-  // Mapa de variables para el motor de plantillas
+  // ── Mapa de variables para el motor de plantillas ─────────────────────────
   const vars: Record<string, string> = {
-    // Layout flags
-    logo_url:                    logoUrl,
-    mostrar_bloque_contacto_redes: mostrarBloqueRedes ? 'true' : '',
-    mostrar_footer:              mostrarFooter ? 'true' : '',
+    // Header
+    header_bg:            headerBg,
+    header_text_color:    headerTextColor,
+    header_bg_btn_start:  bgStart,
+    header_bg_btn_end:    bgEnd,
+    footer_bg:            config.footer_bg_color || '#1e2847',
 
-    // Datos del participante
+    // Toggles de secciones
+    show_titulo_cert:        on(config.mostrar_titulo_certificado, true),
+    show_saludo:             on(config.mostrar_saludo_destacado,   true),
+    show_resumen_evento:     on(config.mostrar_resumen_evento,     true),
+    show_codigo:             on(config.mostrar_codigo_certificado, true),
+    show_boton_descarga:     on(config.mostrar_boton_descarga,     true),
+    show_boton_verificacion: on(config.mostrar_boton_verificacion, true),
+    show_bloque_contacto:    on(config.mostrar_bloque_contacto,    true),
+    show_bloque_redes:       on(config.mostrar_bloque_redes,       hayRedes),
+    show_footer_legal:       on(config.mostrar_footer,             true),
+
+    // Logo
+    logo_url: logoUrl,
+
+    // Participante
     nombre_participante: escapeHtml(data.nombre_completo),
 
-    // Contenido dinámico
+    // Cuerpo dinámico
     mensaje_renderizado: mensajeRenderizado,
 
     // Evento
@@ -347,13 +494,13 @@ export function buildCertificateEmail(
     url_descarga:       data.pdf_url          || '#',
     url_verificacion:   data.verificacion_url || '#',
 
-    // Firma / contacto texto
-    firma_html:          config.firma_html          || '',
-    org_name:            escapeHtml(orgName),
-    direccion_contacto:  config.direccion_contacto  || '',
-    telefono_contacto:   config.telefono_contacto   || '',
-    sitio_web:           config.sitio_web            || '',
-    email_contacto:      config.email_contacto       || '',
+    // Firma / contacto (texto)
+    firma_html:         config.firma_html          || '',
+    org_name:           escapeHtml(orgName),
+    direccion_contacto: config.direccion_contacto  || '',
+    telefono_contacto:  config.telefono_contacto   || '',
+    sitio_web:          config.sitio_web            || '',
+    email_contacto:     config.email_contacto       || '',
 
     // Redes sociales
     whatsapp_url:  whatsappUrl,
@@ -381,8 +528,7 @@ ${bodyHtml}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PLANTILLA: verificación de correo durante el proceso de inscripción
-// (layout propio, no usa el BASE_EMAIL_TEMPLATE de certificados)
+// PLANTILLA: verificación de correo (layout propio, no usa BASE_EMAIL_TEMPLATE)
 // ─────────────────────────────────────────────────────────────────────────────
 export function buildVerificationEmail(data: {
   nombre: string;
@@ -390,9 +536,9 @@ export function buildVerificationEmail(data: {
   verificacion_url: string;
   expira_minutos?: number;
 }, config: EmailSistemaConfig, branding: TenantBranding): string {
-  const logoUrl  = config.logo_url || branding.logo_url || '';
-  const orgName  = config.nombre_remitente || branding.name || 'Nuestra Organización';
-  const expira   = data.expira_minutos ?? 60;
+  const logoUrl = config.logo_url || branding.logo_url || '';
+  const orgName = config.nombre_remitente || branding.name || 'Nuestra Organización';
+  const expira  = data.expira_minutos ?? 60;
   const mostrarFooter = config.mostrar_footer !== false;
 
   const socialLinks = [
@@ -416,9 +562,8 @@ export function buildVerificationEmail(data: {
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
                style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-          <!-- Encabezado -->
           <tr>
-            <td style="background-color:#059669;background:linear-gradient(135deg,#059669 0%,#10B981 60%,#34D399 100%);padding:36px 40px;text-align:center;">
+            <td style="background:linear-gradient(135deg,#059669 0%,#10B981 60%,#34D399 100%);padding:36px 40px;text-align:center;">
               ${logoUrl
                 ? `<img src="${logoUrl}" alt="${escapeHtml(orgName)}" height="48" style="max-height:48px;display:inline-block;margin-bottom:16px;" /><br/>`
                 : `<div style="font-size:20px;font-weight:800;color:white;margin-bottom:12px;">${escapeHtml(orgName)}</div>`}
@@ -428,16 +573,11 @@ export function buildVerificationEmail(data: {
             </td>
           </tr>
 
-          <!-- Contenido -->
           <tr>
             <td style="padding:40px 48px 32px;">
               <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#059669;letter-spacing:1px;text-transform:uppercase;">&#161;Hola!</p>
-              <h1 style="margin:0 0 20px;font-size:24px;font-weight:800;color:#0F172A;line-height:1.25;">
-                ${escapeHtml(data.nombre)}
-              </h1>
-              <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.7;">
-                Gracias por tu inter&#233;s en:
-              </p>
+              <h1 style="margin:0 0 20px;font-size:24px;font-weight:800;color:#0F172A;line-height:1.25;">${escapeHtml(data.nombre)}</h1>
+              <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.7;">Gracias por tu inter&#233;s en:</p>
               <div style="background:#ECFDF5;border-left:4px solid #10B981;border-radius:0 10px 10px 0;padding:14px 20px;margin-bottom:28px;">
                 <p style="margin:0;font-size:16px;font-weight:700;color:#065F46;">${escapeHtml(data.nombre_evento)}</p>
               </div>
@@ -475,7 +615,7 @@ export function buildVerificationEmail(data: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPER: escape HTML básico para valores dinámicos inyectados como texto
+// HELPER: escape HTML para valores dinámicos inyectados como texto plano
 // ─────────────────────────────────────────────────────────────────────────────
 function escapeHtml(str: string | null | undefined): string {
   return (str ?? '')

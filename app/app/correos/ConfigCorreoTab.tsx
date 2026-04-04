@@ -103,6 +103,12 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
   const [whatsappPais, setWhatsappPais]     = useState(paisInicial);
   const [whatsappNumero, setWhatsappNumero] = useState(numeroInicial);
 
+  // Colores del correo
+  const [headerBgColor,     setHeaderBgColor]     = useState<string>(config?.header_bg_color     || '#27498b');
+  const [headerBgSecondary, setHeaderBgSecondary] = useState<string>(config?.header_bg_secondary || '#3f67d8');
+  const [headerTextColor,   setHeaderTextColor]   = useState<string>(config?.header_text_color   || '#ffffff');
+  const [footerBgColor,     setFooterBgColor]     = useState<string>(config?.footer_bg_color     || '#1e2847');
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -111,7 +117,11 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
     formData.set("footer_html", footerHtml);
     formData.set("mostrar_footer", String(mostrarFooter));
     const numLimpio = whatsappNumero.replace(/\D/g, '');
-    formData.set("whatsapp_numero", numLimpio ? `${whatsappPais}${numLimpio}` : '');
+    formData.set("whatsapp_numero",     numLimpio ? `${whatsappPais}${numLimpio}` : '');
+    formData.set("header_bg_color",     headerBgColor);
+    formData.set("header_bg_secondary", headerBgSecondary);
+    formData.set("header_text_color",   headerTextColor);
+    formData.set("footer_bg_color",     footerBgColor);
 
     try {
       const res = await saveEmailConfigAction(formData);
@@ -330,6 +340,145 @@ export function ConfigCorreoTab({ config, oauthConfig }: ConfigCorreoTabProps) {
           <div className="space-y-3">
             <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Mensaje del Footer (Opcional)</Label>
             <RichTextEditor content={footerHtml} onChange={setFooterHtml} placeholder="Ej. Este es un correo automático, por favor no lo respondas." />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Apariencia del Correo ────────────────────────────────────────── */}
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-violet-500/10 rounded-xl">
+              <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">Apariencia del Correo</CardTitle>
+              <CardDescription>Personaliza los colores del header y footer del correo institucional.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 space-y-8">
+
+          {/* Previsualización en miniatura */}
+          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+            {/* Mini header */}
+            <div
+              className="h-14 flex items-center justify-center"
+              style={{ background: headerBgSecondary
+                ? `linear-gradient(90deg,${headerBgColor} 0%,${headerBgSecondary} 100%)`
+                : headerBgColor }}
+            >
+              <span className="text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full"
+                    style={{ color: headerTextColor, background: 'rgba(255,255,255,0.14)' }}>
+                Certificado de Participación
+              </span>
+            </div>
+            {/* Mini body */}
+            <div className="bg-white dark:bg-slate-900 px-6 py-4 text-xs text-slate-400 text-center">
+              Cuerpo del correo · botones · redes sociales
+            </div>
+            {/* Mini footer */}
+            <div className="h-8 flex items-center justify-center"
+                 style={{ background: footerBgColor }}>
+              <span className="text-[10px]" style={{ color: '#8b95b0' }}>Aviso legal del correo</span>
+            </div>
+          </div>
+
+          {/* Inputs de colores */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+            {/* Color principal del header */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Color principal del header
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={headerBgColor}
+                  onChange={e => setHeaderBgColor(e.target.value)}
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white dark:bg-slate-900 shrink-0"
+                />
+                <Input
+                  value={headerBgColor}
+                  onChange={e => setHeaderBgColor(e.target.value)}
+                  className="h-11 font-mono text-sm bg-white/70 rounded-xl border-slate-200 uppercase flex-1"
+                  maxLength={7}
+                  placeholder="#27498b"
+                />
+              </div>
+            </div>
+
+            {/* Color secundario del header (gradiente) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Color secundario del header
+                <span className="ml-1 font-normal text-slate-400 normal-case">(gradiente)</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={headerBgSecondary}
+                  onChange={e => setHeaderBgSecondary(e.target.value)}
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white dark:bg-slate-900 shrink-0"
+                />
+                <Input
+                  value={headerBgSecondary}
+                  onChange={e => setHeaderBgSecondary(e.target.value)}
+                  className="h-11 font-mono text-sm bg-white/70 rounded-xl border-slate-200 uppercase flex-1"
+                  maxLength={7}
+                  placeholder="#3f67d8"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">Deja igual al principal para color sólido.</p>
+            </div>
+
+            {/* Color del texto del header */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Color del texto del header
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={headerTextColor}
+                  onChange={e => setHeaderTextColor(e.target.value)}
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white dark:bg-slate-900 shrink-0"
+                />
+                <Input
+                  value={headerTextColor}
+                  onChange={e => setHeaderTextColor(e.target.value)}
+                  className="h-11 font-mono text-sm bg-white/70 rounded-xl border-slate-200 uppercase flex-1"
+                  maxLength={7}
+                  placeholder="#ffffff"
+                />
+              </div>
+            </div>
+
+            {/* Color del footer */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Color del footer legal
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={footerBgColor}
+                  onChange={e => setFooterBgColor(e.target.value)}
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white dark:bg-slate-900 shrink-0"
+                />
+                <Input
+                  value={footerBgColor}
+                  onChange={e => setFooterBgColor(e.target.value)}
+                  className="h-11 font-mono text-sm bg-white/70 rounded-xl border-slate-200 uppercase flex-1"
+                  maxLength={7}
+                  placeholder="#1e2847"
+                />
+              </div>
+            </div>
+
           </div>
         </CardContent>
       </Card>

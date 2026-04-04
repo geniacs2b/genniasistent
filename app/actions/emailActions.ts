@@ -34,6 +34,10 @@ export async function saveEmailConfigAction(formData: FormData) {
       x_url: formData.get("x_url") as string,
       tiktok_url: formData.get("tiktok_url") as string,
       whatsapp_numero: formData.get("whatsapp_numero") as string,
+      header_bg_color: formData.get("header_bg_color") as string || null,
+      header_bg_secondary: formData.get("header_bg_secondary") as string || null,
+      header_text_color: formData.get("header_text_color") as string || null,
+      footer_bg_color: formData.get("footer_bg_color") as string || null,
       mostrar_footer: formData.get("mostrar_footer") === "true",
       activo: formData.get("activo") !== "false",
       tenant_id: tenantId,  // ← EXPLÍCITO

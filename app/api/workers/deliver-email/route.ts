@@ -281,6 +281,10 @@ async function handler(req: NextRequest) {
         linkedin_url:              sysConf?.linkedin_url         ?? '',
         x_url:                     sysConf?.x_url                ?? '',
         tiktok_url:                sysConf?.tiktok_url           ?? '',
+        // WhatsApp — construir URL igual que buildCertificateEmail
+        whatsapp_url: sysConf?.whatsapp_numero
+          ? `https://wa.me/${sysConf.whatsapp_numero.replace(/[^\d]/g, '')}`
+          : '',
       };
 
       // Paso 1: evaluar bloques {{#if var}}...{{/if}} con el motor de plantillas
