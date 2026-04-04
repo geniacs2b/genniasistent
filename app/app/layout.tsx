@@ -16,13 +16,12 @@ import {
   Mail,
   Sparkles,
   Activity,
-  Building2,
   UsersRound,
-  Palette,
   ChevronRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabaseClient";
 import Image from "next/image";
+import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 
 // ─── Estructura de navegación por grupos ─────────────────────────────────────
 const NAV_GROUPS = [
@@ -189,9 +188,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── Contenido principal ───────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
 
-        {/* Header — solo visible en móvil (el sidebar está hidden en mobile) */}
+        {/* Header — limpio, con OrgSwitcher en el lado derecho */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-4 sm:px-8 z-10 sticky top-0 shadow-sm transition-colors">
-          {/* Logo móvil */}
+          {/* Logo móvil (solo visible en md-) */}
           <div className="flex items-center gap-3 md:hidden">
             <div className="h-8 w-8 flex items-center justify-center">
               <img
@@ -205,8 +204,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           </div>
 
-          {/* Placeholder desktop (header limpio) */}
+          {/* Espacio izquierdo desktop */}
           <div className="hidden md:block" />
+
+          {/* Lado derecho: selector de organización + acciones ocultas (lógica intacta) */}
+          <div className="flex items-center gap-3">
+            <OrganizationSwitcher />
+          </div>
 
           {/* Bloque Operativo + Cerrar Sesión — oculto visualmente, lógica intacta */}
           <div className="hidden">
