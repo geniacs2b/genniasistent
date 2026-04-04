@@ -19,6 +19,7 @@ import { checkExistingRegistration } from "@/app/actions/validation";
 import { Loader2, AlertCircle, XCircle, MapPin, Building2, CreditCard } from "lucide-react";
 import { COLOMBIA_DATA } from "@/lib/colombiaData";
 import { createClient } from "@/lib/supabaseClient";
+import type { TenantPublicBranding } from "@/services/eventService";
 
 const DOCUMENT_TYPES = [
   "Cédula de ciudadanía",
@@ -82,6 +83,7 @@ interface DynamicFormProps {
   imagenFormularioPath?: string | null;
   imagenFormularioAlt?: string | null;
   mostrarImagenFormulario?: boolean;
+  tenantBranding?: TenantPublicBranding | null;
 }
 
 export function DynamicForm({ 
@@ -101,7 +103,8 @@ export function DynamicForm({
   initialData,
   imagenFormularioPath,
   imagenFormularioAlt,
-  mostrarImagenFormulario
+  mostrarImagenFormulario,
+  tenantBranding,
 }: DynamicFormProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -469,8 +472,38 @@ export function DynamicForm({
     }
   };
 
+  // Colores de branding del tenant (fallback a primary si no están configurados)
+  const brandBgColor     = tenantBranding?.public_header_bg_color     ?? null;
+  const brandBgSecondary = tenantBranding?.public_header_bg_secondary ?? null;
+  const hasBrandColors   = !!(brandBgColor && brandBgSecondary);
+  const accentStyle = hasBrandColors
+    ? { background: `linear-gradient(90deg, ${brandBgColor} 0%, ${brandBgSecondary} 100%)` }
+    : undefined;
+
   return (
     <div className="w-full">
+      {/* Tenant logo + branding header */}
+      {tenantBranding && (tenantBranding.logo_url || hasBrandColors) && (
+        <div
+          className="w-full rounded-2xl overflow-hidden mb-6 flex items-center justify-center py-5 px-8"
+          style={
+            hasBrandColors
+              ? { background: `linear-gradient(135deg, ${brandBgColor} 0%, ${brandBgSecondary} 100%)` }
+              : { background: "linear-gradient(135deg, #27498b 0%, #3f67d8 100%)" }
+          }
+        >
+          {tenantBranding.logo_url ? (
+            <img
+              src={tenantBranding.logo_url}
+              alt={tenantBranding.name ?? "Logo"}
+              className="max-h-12 max-w-[200px] object-contain"
+            />
+          ) : (
+            <span className="text-white/80 font-bold text-lg">{tenantBranding.name}</span>
+          )}
+        </div>
+      )}
+
       <div className="mb-8 text-center sm:text-left space-y-4">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           {eventoTitulo}
@@ -524,7 +557,10 @@ export function DynamicForm({
       )}
 
       <CardHeader className="p-8 sm:p-10 pb-6 relative border-b border-slate-100 dark:border-slate-800/50">
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-secondary to-primary brightness-110"></div>
+        <div
+          className={`absolute top-0 left-0 right-0 h-1.5 ${hasBrandColors ? "" : "bg-gradient-to-r from-primary via-secondary to-primary brightness-110"}`}
+          style={accentStyle}
+        />
         <CardTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Registro de Asistencia</CardTitle>
         <CardDescription className="text-base mt-2 text-slate-500 dark:text-slate-400">
           Por favor, ingresa tu información para confirmar tu participación en este evento.

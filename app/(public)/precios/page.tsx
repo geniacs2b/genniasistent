@@ -24,8 +24,12 @@ export default function PricingPage() {
       <header className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/50 transition-all">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-brand-green/10 rounded flex items-center justify-center p-1">
-              <span className="text-brand-green font-bold text-sm">GA</span>
+            <div className="h-8 w-8 flex items-center justify-center">
+              <img
+                src="/assets/Logo asistencia.png"
+                alt="Logo GenniAsistent"
+                className="h-full w-full object-contain"
+              />
             </div>
             <span className="font-extrabold text-lg tracking-tighter text-slate-800 dark:text-slate-100 uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>

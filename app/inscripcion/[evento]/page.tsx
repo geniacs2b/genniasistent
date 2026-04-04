@@ -16,7 +16,7 @@ export default async function InscripcionPage({
 }) {
   try {
     // 1. Obtener Evento basándose en el slug del formulario
-    const { evento, formularioId, fecha_apertura, fecha_cierre } = await eventService.getEventByFormSlug(params.evento);
+    const { evento, formularioId, fecha_apertura, fecha_cierre, tenantBranding } = await eventService.getEventByFormSlug(params.evento);
     
     console.log("--- [InscripcionPage] DIAGNÓSTICO CARGA ---");
     console.log("Slug params.evento:", params.evento);
@@ -50,8 +50,8 @@ export default async function InscripcionPage({
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 flex flex-col items-center py-12 px-4 selection:bg-primary/20">
         <div className="w-full max-w-3xl">
-          <DynamicForm 
-            eventoId={evento.id} 
+          <DynamicForm
+            eventoId={evento.id}
             formularioId={formularioId}
             eventoTitulo={evento.titulo}
             eventoDescripcion={evento.descripcion}
@@ -60,7 +60,7 @@ export default async function InscripcionPage({
             eventoFechaFin={evento.fecha_fin}
             eventoHoraFin={evento.hora_fin}
             eventoLugar={evento.lugar}
-            fields={fields} 
+            fields={fields}
             fechaApertura={fecha_apertura}
             fechaCierre={fecha_cierre}
             formSlug={params.evento}
@@ -68,6 +68,7 @@ export default async function InscripcionPage({
             imagenFormularioPath={(evento as any).imagen_formulario_path}
             imagenFormularioAlt={(evento as any).imagen_formulario_alt}
             mostrarImagenFormulario={(evento as any).mostrar_imagen_formulario}
+            tenantBranding={tenantBranding}
           />
         </div>
       </div>

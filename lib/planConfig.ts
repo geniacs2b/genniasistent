@@ -102,3 +102,33 @@ export function getPlanKeyFromQuota(quota: number): PlanKey {
   if (quota > 500)      return "pro";
   return "starter";
 }
+
+/**
+ * Devuelve el plan actual del tenant (incluyendo 'trial' si no está activo).
+ */
+export function getTenantPlanKey(tenant: {
+  billing_status?: string | null;
+  current_plan_key?: string | null;
+  certificate_quota?: number | null;
+}): PlanKey | 'trial' {
+  if (tenant.billing_status !== 'active') return 'trial';
+  if (tenant.current_plan_key) return tenant.current_plan_key as PlanKey;
+  return getPlanKeyFromQuota(tenant.certificate_quota ?? 0);
+}
+
+/**
+ * Retorna true si el tenant tiene al menos el plan indicado.
+ * 'trial' nunca cumple ningún requisito de plan.
+ */
+export function isPlanAtLeast(
+  tenant: {
+    billing_status?: string | null;
+    current_plan_key?: string | null;
+    certificate_quota?: number | null;
+  },
+  required: PlanKey,
+): boolean {
+  const current = getTenantPlanKey(tenant);
+  if (current === 'trial') return false;
+  return PLAN_ORDER.indexOf(current as PlanKey) >= PLAN_ORDER.indexOf(required);
+}

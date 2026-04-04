@@ -87,18 +87,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Header Unificado SaaS (Desktop & Mobile) */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between px-4 sm:px-8 z-10 sticky top-0 shadow-sm transition-colors">
           <div className="flex items-center gap-3 md:hidden">
-            <div className="h-8 w-8 bg-brand-green/10 rounded flex items-center justify-center p-1">
-              <span className="text-brand-green font-bold text-sm">GA</span>
+            <div className="h-8 w-8 flex items-center justify-center">
+              <img
+                src="/assets/Logo asistencia.png"
+                alt="Logo GenniAsistent"
+                className="h-full w-full object-contain"
+              />
             </div>
             <span className="font-extrabold text-sm tracking-tighter text-slate-800 dark:text-slate-100 uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
             </span>
           </div>
           
-          <div className="hidden md:flex items-center gap-2">
-            <div className="h-6 w-1 bg-primary rounded-full"></div>
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-none">Espacio de Trabajo</h2>
-          </div>
+          {/* Se eliminó el título "Espacio de Trabajo" por solicitud del usuario */}
+          <div className="hidden md:flex items-center gap-2"></div>
 
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">

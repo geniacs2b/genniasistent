@@ -12,6 +12,19 @@ export const BUCKET_CERTIFICADOS = 'certificados-generados';
 /** Bucket donde se guardan las imágenes de fondo de las plantillas de certificados. */
 export const BUCKET_PLANTILLAS_BASE = 'certificados-base';
 
+/** Bucket donde se guardan los logos de cada tenant (público, read-only). */
+export const BUCKET_TENANT_LOGOS = 'tenant-logos';
+
+/**
+ * Construye la ruta canónica del logo de un tenant.
+ * Siempre sobreescribe el mismo archivo (upsert) para evitar acumulación.
+ * Estructura: {tenant_id}/logo.{ext}
+ */
+export function buildTenantLogoPath(tenantId: string, fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? 'png';
+  return `${tenantId}/logo.${ext}`;
+}
+
 /**
  * Construye la ruta canónica dentro de BUCKET_CERTIFICADOS para un PDF generado.
  * Estructura: {tenant_id}/{evento_id}/{job_id}.pdf

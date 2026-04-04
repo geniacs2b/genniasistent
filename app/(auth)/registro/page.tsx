@@ -207,8 +207,12 @@ export default function RegistroPage() {
       <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50">
         <div className="container max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 bg-primary/10 rounded flex items-center justify-center">
-              <span className="text-primary font-bold text-xs">GA</span>
+            <div className="h-7 w-7 flex items-center justify-center">
+              <img
+                src="/assets/Logo asistencia.png"
+                alt="Logo GenniAsistent"
+                className="h-full w-full object-contain"
+              />
             </div>
             <span className="font-extrabold text-base tracking-tighter text-slate-800 uppercase italic">
               Genni<span className="text-primary italic">Asistent</span>
