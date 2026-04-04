@@ -97,7 +97,7 @@ export function OrganizationSwitcher() {
         </span>
 
         {/* Nombre */}
-        <span className="text-[13px] font-semibold leading-none truncate max-w-[120px]">
+        <span className="text-[13px] font-bold leading-none truncate max-w-[140px] text-slate-800 dark:text-slate-100">
           {loading ? "Cargando…" : orgName ?? "Organización"}
         </span>
 
@@ -111,23 +111,25 @@ export function OrganizationSwitcher() {
         <div className="absolute top-[calc(100%+6px)] left-0 z-50 w-64 rounded-xl border border-white/10 bg-[#151820] shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
 
           {/* Org header */}
-          <div className="px-4 py-3.5 border-b border-white/8">
+          <div className="px-4 py-4 border-b border-white/8 bg-white/5 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 shadow-lg shadow-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                 {orgLogo ? (
-                  <img src={orgLogo} alt={orgName ?? "Org"} className="w-full h-full object-contain" />
+                  <img src={orgLogo} alt={orgName ?? "Org"} className="w-full h-full object-contain p-1" />
                 ) : (
                   <span className="text-sm font-black text-primary">{initial}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-white leading-snug truncate">
+                <p className="text-[14px] font-bold text-white leading-tight truncate">
                   {orgName ?? "Mi Organización"}
                 </p>
-                <p className="text-[11px] text-slate-500 font-medium leading-snug">Organización activa</p>
+                <p className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">Organización activa</p>
               </div>
               {/* Check de "activo" */}
-              <Check className="h-4 w-4 text-primary shrink-0" />
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Check className="h-3.5 w-3.5 text-primary" />
+              </div>
             </div>
           </div>
 

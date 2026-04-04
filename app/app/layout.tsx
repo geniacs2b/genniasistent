@@ -184,14 +184,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
 
-      {/* ── Sidebar colapsable ────────────────────────────────────────────── */}
+      {/* ── Sidebar colapsable (Panel flotante) ────────────────────────────────── */}
       <aside
         className={`
           hidden md:flex flex-col
-          bg-[#0f1117] border-r border-white/5
-          transition-all duration-200 ease-in-out
+          my-4 ml-4 mr-0
+          bg-[#0f1117] border border-white/5
+          rounded-[2rem] shadow-2xl shadow-black/20
+          transition-all duration-300 ease-in-out
           z-20 relative shrink-0
-          ${collapsed ? "w-[60px]" : "w-[220px]"}
+          ${collapsed ? "w-[64px]" : "w-[240px]"}
         `}
       >
         {/* Logo — solo visible en estado expandido */}
@@ -297,15 +299,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* ── Contenido principal ────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
 
         {/* ── Header limpio ─────────────────────────────────────────────── */}
         <header className="
-          h-14 bg-white dark:bg-[#0d1117]
-          border-b border-slate-200/70 dark:border-white/6
-          flex items-center justify-between px-4
-          z-10 sticky top-0
-          shadow-[0_1px_3px_rgba(0,0,0,0.06)]
+          h-14 bg-white/80 dark:bg-[#0d1117]/80
+          backdrop-blur-md
+          border-b border-slate-200/60 dark:border-white/5
+          flex items-center justify-between px-6
+          z-30 sticky top-0
           transition-colors shrink-0
         ">
           {/* Zona izquierda: botón colapsar + breadcrumb */}
