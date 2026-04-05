@@ -28,8 +28,8 @@ export default async function EventosPage() {
           <p className="text-base text-slate-500 dark:text-slate-400 mt-2">Gestiona todos los eventos de la plataforma desde un solo lugar.</p>
         </div>
         <Link href="/app/eventos/nuevo">
-          <Button className="h-12 px-6 rounded-xl font-bold gap-2 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95 bg-primary text-primary-foreground">
-            <Plus className="w-5 h-5" strokeWidth={2.5} />
+          <Button className="h-12 px-7 rounded-xl font-bold gap-2.5 shadow-[0_10px_25px_rgba(167,199,58,0.3)] hover:shadow-[0_15px_30px_rgba(167,199,58,0.4)] hover:-translate-y-1.5 transition-all duration-300 active:scale-95 bg-gradient-to-br from-[#A7C73A] to-[#86b62f] hover:brightness-110 border-0 text-white">
+            <Plus className="w-5 h-5" strokeWidth={3} />
             Crear Nuevo Evento
           </Button>
         </Link>

@@ -27,6 +27,7 @@ export default async function ParticipantesPage() {
       id,
       persona_id,
       evento_id,
+      estado,
       created_at,
       eventos ( id, titulo, min_sesiones_certificado )
     `)
@@ -126,11 +127,8 @@ export default async function ParticipantesPage() {
       id: insc.id,
       persona_id: insc.persona_id,
       evento_id: insc.evento_id,
-      estado_visual: cumpleMinimo ? "Cumple" : "No cumple",
-      accion_boton: null as string | null,
+      estado_db: insc.estado ?? "inscrito",
       cumple_asistencia: cumpleMinimo,
-      autorizado_manual: false,
-      envio_fallido: false,
       personas: {
         nombre_completo: nombreCompleto,
         numero_documento: p?.numero_documento ?? "Sin documento",

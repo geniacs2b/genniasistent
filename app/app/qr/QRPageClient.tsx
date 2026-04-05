@@ -11,7 +11,24 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabaseClient";
 import { formatToBogota } from "@/lib/date";
-import { QrCode, Copy, CheckCheck, Play, StopCircle, XCircle, RefreshCw, Download, Trash2 } from "lucide-react";
+import { 
+  QrCode, 
+  Copy, 
+  CheckCheck, 
+  Play, 
+  StopCircle, 
+  XCircle, 
+  RefreshCw, 
+  Download, 
+  Trash2,
+  Calendar,
+  Zap,
+  Activity,
+  Maximize2,
+  ExternalLink,
+  ChevronRight
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface QRPageClientProps {
   sesiones: any[];
@@ -20,20 +37,39 @@ interface QRPageClientProps {
 
 type QrEstado = 'generado' | 'activo' | 'cerrado' | 'cancelado' | string;
 
-function estadoBadge(estado: QrEstado, activo: boolean) {
-  if (estado === 'activo' || (activo && !estado)) {
-    return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 border-0 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide">ACTIVO</Badge>;
+function EstadoBadge({ estado, activo }: { estado: QrEstado, activo: boolean }) {
+  const finalState = estado === 'activo' || (activo && !estado) ? 'activo' : estado;
+  
+  if (finalState === 'activo') {
+    return (
+      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0 px-3 py-1 rounded-full text-[10px] font-black tracking-widest flex items-center gap-2 animate-in fade-in zoom-in-95 duration-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        ACTIVO
+      </Badge>
+    );
   }
-  if (estado === 'generado') {
-    return <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 border-0 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide">GENERADO</Badge>;
+  if (finalState === 'generado') {
+    return (
+      <Badge variant="secondary" className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-0 px-3 py-1 rounded-full text-[10px] font-black tracking-widest animate-in fade-in zoom-in-95 duration-300">
+        GENERADO
+      </Badge>
+    );
   }
-  if (estado === 'cerrado') {
-    return <Badge variant="outline" className="border-orange-200 text-orange-600 dark:border-orange-500/30 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide">CERRADO</Badge>;
+  if (finalState === 'cerrado') {
+    return (
+      <Badge variant="outline" className="border-orange-200 text-orange-600 dark:border-orange-500/30 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 px-3 py-1 rounded-full text-[10px] font-black tracking-widest animate-in fade-in zoom-in-95 duration-300">
+        PAUSADO
+      </Badge>
+    );
   }
-  if (estado === 'cancelado') {
-    return <Badge variant="destructive" className="bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-500/10 dark:text-rose-400 border-0 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide">CANCELADO</Badge>;
+  if (finalState === 'cancelado') {
+    return (
+      <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-0 px-3 py-1 rounded-full text-[10px] font-black tracking-widest animate-in fade-in zoom-in-95 duration-300">
+        ANULADO
+      </Badge>
+    );
   }
-  return <Badge variant="outline" className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">{estado ?? 'Generado'}</Badge>;
+  return <Badge variant="outline" className="px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">{estado ?? 'Generado'}</Badge>;
 }
 
 /** Canvas que renderiza el QR y expone un ref para descargar */
@@ -45,7 +81,7 @@ function QrCanvas({ token, tokenId, sesionNombre }: { token: string; tokenId: st
 
   useEffect(() => {
     if (canvasRef.current) {
-      QRCode.toCanvas(canvasRef.current, url, { width: 200, margin: 2 });
+      QRCode.toCanvas(canvasRef.current, url, { width: 180, margin: 2 });
     }
   }, [url]);
 
@@ -59,11 +95,13 @@ function QrCanvas({ token, tokenId, sesionNombre }: { token: string; tokenId: st
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-      <canvas ref={canvasRef} className="rounded-xl" />
-      <Button size="sm" variant="outline" className="gap-2 w-full h-9 rounded-xl font-bold border-support text-support hover:bg-support/5 transition-colors" onClick={handleDownload}>
-        <Download className="w-3.5 h-3.5" />
-        Descargar QR
+    <div className="flex flex-col items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-inner group/qr">
+      <div className="relative p-2 bg-white rounded-xl border border-slate-50 shadow-sm transition-transform group-hover/qr:scale-105 duration-500">
+        <canvas ref={canvasRef} className="rounded-lg" />
+      </div>
+      <Button size="sm" variant="outline" className="gap-2 w-full h-10 rounded-xl font-black text-[11px] uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-slate-50 transition-all active:scale-95" onClick={handleDownload}>
+        <Download className="w-4 h-4" />
+        Descargar Imagen
       </Button>
     </div>
   );
@@ -141,16 +179,21 @@ export function QRPageClient({ sesiones, tokens: initialTokens }: QRPageClientPr
     } else if (result?.ok === false) {
       toast({ title: `Error al ${action} QR`, description: result?.mensaje, variant: "destructive" });
     } else {
-      toast({ title: `QR ${action === 'activar' ? 'activado' : action === 'desactivar' ? 'desactivado' : 'cancelado'} correctamente` });
+      toast({ title: `Operación exitosa`, description: `QR ${action === 'activar' ? 'activado' : action === 'desactivar' ? 'pausado' : 'anulado'} correctamente` });
       await refreshTokens();
     }
   };
 
+  const copyLink = (token: string, id: string) => {
+    const url = `${window.location.origin}/asistencia?token=${token}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(id);
+    toast({ title: "Enlace copiado", description: "Se ha copiado la URL de registro al portapapeles." });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleDelete = async (tokenId: string) => {
-    const confirmed = window.confirm(
-      "¿Seguro que deseas eliminar este QR? Esta acción no se puede deshacer."
-    );
-    if (!confirmed) return;
+    if (!window.confirm("¿Seguro que deseas eliminar este QR? Esta acción es definitiva.")) return;
 
     setActionLoading(tokenId + 'eliminar');
     const { data, error } = await supabase.rpc('eliminar_qr_sesion', { p_qr_token_id: tokenId });
@@ -159,80 +202,106 @@ export function QRPageClient({ sesiones, tokens: initialTokens }: QRPageClientPr
     const result = Array.isArray(data) ? data[0] : data;
 
     if (error) {
-      toast({ title: "Error al eliminar QR", description: error.message, variant: "destructive" });
+      toast({ title: "Error al eliminar", description: error.message, variant: "destructive" });
     } else if (result?.ok === false) {
-      toast({ title: "No se pudo eliminar el QR", description: result?.mensaje, variant: "destructive" });
+      toast({ title: "No se pudo eliminar", description: result?.mensaje, variant: "destructive" });
     } else {
       toast({ title: "QR eliminado correctamente" });
       setTokens(prev => prev.filter(t => t.id !== tokenId));
     }
   };
 
-  const copyLink = (token: string, id: string) => {
-    const url = `${window.location.origin}/asistencia?token=${token}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Panel generación */}
-      <Card className="lg:col-span-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-[1.5rem] self-start overflow-hidden">
-        <div className="h-1 w-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
-        <CardHeader className="pb-4 px-6 pt-6 border-b border-slate-100 dark:border-slate-800">
-          <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-            <QrCode className="w-5 h-5 text-emerald-500" />
-            Nuevo Código QR
-          </CardTitle>
-          <CardDescription className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
-            El QR se crea en estado <span className="font-bold">"generado"</span>. Actívalo manualmente cuando empiece la sesión.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 p-6">
-          <div className="space-y-2">
-            <Label className="text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Sesión del Evento</Label>
-            <Select onValueChange={setSesionId}>
-              <SelectTrigger className="h-12 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium text-slate-800 dark:text-slate-100 rounded-xl">
-                <SelectValue placeholder="Seleccione sesión..." />
-              </SelectTrigger>
-              <SelectContent>
-                {sesiones.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="py-2.5 font-medium">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{(s.eventos as any)?.titulo}</span> <span className="text-slate-400 mx-1">–</span> {s.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={generateQR} disabled={loading} className="w-full gap-2 h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
-            <QrCode className="w-4 h-4" />
-            {loading ? "Generando Código..." : "Generar Código QR"}
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full gap-2 h-10 rounded-xl font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors" onClick={refreshTokens}>
-            <RefreshCw className="w-4 h-4" />
-            Actualizar lista
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      {/* Panel generación (Izquierda) */}
+      <div className="lg:col-span-4 space-y-6">
+        <Card className="shadow-[0_8px_40px_rgb(0,0,0,0.03)] border border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[2rem] overflow-hidden group">
+          <div className="h-2 w-full bg-gradient-to-r from-indigo-500 to-indigo-700"></div>
+          <CardHeader className="pb-6 px-10 pt-10">
+            <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 transition-transform group-hover:rotate-12 duration-500">
+                    <Zap className="w-6 h-6" fill="currentColor" />
+                </div>
+                <div>
+                   <CardTitle className="text-2xl font-black italic text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                    Nuevo acceso QR
+                   </CardTitle>
+                   <CardDescription className="text-sm font-medium text-slate-500 mt-1">
+                    Crea un punto de captura de asistencia.
+                   </CardDescription>
+                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-8 px-10 pb-10">
+            <div className="space-y-4">
+              <Label className="text-[11px] uppercase tracking-[0.2em] font-black text-slate-400">Seleccionar Sesión Operativa</Label>
+              <Select onValueChange={setSesionId}>
+                <SelectTrigger className="h-14 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 transition-all italic">
+                  <SelectValue placeholder="Busca una sesión..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
+                  {sesiones.map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="py-3 px-4 font-bold cursor-pointer">
+                      <span className="text-indigo-600">{(s.eventos as any)?.titulo}</span> 
+                      <span className="text-slate-300 mx-2 font-normal">/</span>
+                      <span className="text-slate-800 dark:text-slate-100">{s.nombre}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-4">
+                <Button 
+                onClick={generateQR} 
+                disabled={loading} 
+                className="w-full gap-3 h-14 rounded-2xl font-black text-base bg-indigo-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/10 transition-all hover:-translate-y-1 hover:shadow-indigo-500/20 active:scale-95 italic"
+                >
+                <QrCode className="w-5 h-5" />
+                {loading ? "Generando Acceso..." : "Generar Código QR"}
+                </Button>
 
-      {/* Lista de tokens */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Códigos Recientes</h2>
-          <Badge variant="secondary" className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-full font-bold px-3">Último 30</Badge>
+                <button 
+                onClick={refreshTokens}
+                className="w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors py-2"
+                >
+                <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+                Actualizar lista de accesos
+                </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tip Informativo */}
+        <div className="p-8 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-[2rem] border border-indigo-100 dark:border-indigo-500/10 space-y-3">
+            <h4 className="text-[11px] font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5" />
+                Control Operativo
+            </h4>
+            <p className="text-xs font-semibold text-slate-500 leading-relaxed italic">
+                Los códigos generados se encuentran inactivos por defecto. Actívalos justo antes de iniciar el registro físico para garantizar la seguridad del evento.
+            </p>
+        </div>
+      </div>
+
+      {/* Lista de tokens (Derecha) */}
+      <div className="lg:col-span-8 space-y-8">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-2xl font-black italic text-slate-900 dark:text-slate-100">Sesiones activas y accesos</h2>
+          <Badge variant="outline" className="border-slate-200 text-slate-400 rounded-full font-black px-4 py-1.5 text-[10px] tracking-widest">REAL TIME MONITORING</Badge>
         </div>
         
         {tokens.length === 0 && (
-          <div className="py-16 text-center flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] border-slate-300/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
-            <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm mb-4">
-              <QrCode className="w-8 h-8 text-slate-300" />
+          <div className="py-32 text-center flex flex-col items-center justify-center border-2 border-dashed rounded-[3rem] border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
+            <div className="h-20 w-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+              <QrCode className="w-10 h-10 text-slate-200" />
             </div>
-            <p className="text-lg font-bold text-slate-600 dark:text-slate-300">No hay tokens generados</p>
-            <p className="text-sm text-slate-500 mt-1">Genera uno nuevo desde el panel izquierdo.</p>
+            <p className="text-xl font-black text-slate-700 italic">Sin accesos configurados</p>
+            <p className="text-sm font-medium text-slate-400 mt-2">Utiliza el panel de la izquierda para crear tu primer punto de acceso.</p>
           </div>
         )}
-        <div className="space-y-4">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
           {tokens.map((t) => {
             const sesion = t.sesiones_evento as any;
             const evento = sesion?.eventos as any;
@@ -242,145 +311,111 @@ export function QRPageClient({ sesiones, tokens: initialTokens }: QRPageClientPr
             const isFinished = estado === 'cancelado' || estado === 'cerrado';
 
             return (
-              <Card key={t.id} className="border border-slate-200/60 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white dark:bg-slate-900 rounded-[1.25rem] overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="p-5 space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="space-y-1">
-                        {/* Nombre del evento */}
-                        {evento?.titulo && (
-                          <p className="text-[10px] font-extrabold text-secondary dark:text-primary uppercase tracking-widest">{evento.titulo}</p>
-                        )}
-                        {/* Nombre de la sesión */}
-                        <p className="font-bold text-base text-slate-800 dark:text-slate-100">{sesion?.nombre ?? "—"}</p>
-                        {/* Fecha de la sesión */}
-                        <div className="flex items-center gap-3 mt-1.5">
-                          {sesion?.fecha && (
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-700">
-                              <span className="text-[10px]">📅</span> {formatToBogota(sesion.fecha, { day: '2-digit', month: 'short', year: 'numeric' })}
-                            </p>
-                          )}
-                          {/* Fecha de generación */}
-                          {t.created_at && (
-                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
-                              Creado: {formatToBogota(t.created_at, { month: 'short', day: '2-digit', hour: '2-digit', minute:'2-digit' })}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {estadoBadge(estado, t.activo)}
+              <Card key={t.id} className="group border border-slate-200/60 dark:border-slate-800 shadow-[0_4px_24px_rgb(0,0,0,0.02)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] transition-all duration-500 bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden flex flex-col h-full hover:-translate-y-1">
+                <div className="p-8 pb-4 flex-1 space-y-6">
+                  {/* Header Card */}
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">{evento?.titulo ?? "Evento"}</p>
+                      <h3 className="font-black text-xl text-slate-900 dark:text-slate-100 italic leading-tight">{sesion?.nombre ?? "Acceso"}</h3>
                     </div>
-
-                    {/* Token text */}
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                       <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TOKEN:</span>
-                       <p className="font-mono text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{t.token}</p>
-                    </div>
-
-                    {/* Fechas activacion/desactivacion */}
-                     {(t.fecha_activacion || t.fecha_desactivacion) && (
-                      <div className="text-xs text-slate-500 dark:text-slate-400 grid grid-cols-2 gap-2 bg-slate-50/50 dark:bg-slate-800/30 p-2.5 rounded-xl">
-                        {t.fecha_activacion && (
-                          <span className="flex items-center gap-1.5"><Play className="w-3 h-3 text-emerald-500" /> {formatToBogota(t.fecha_activacion, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-                        )}
-                        {t.fecha_desactivacion && (
-                          <span className="flex items-center gap-1.5"><StopCircle className="w-3 h-3 text-rose-500" /> {formatToBogota(t.fecha_desactivacion, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* QR Visual (expandible) */}
-                    {isExpanded && (
-                      <div className="flex justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl my-2 border border-slate-100 dark:border-slate-800">
-                        <QrCanvas token={t.token} tokenId={t.id} sesionNombre={sesion?.nombre ?? "sesion"} />
-                      </div>
-                    )}
+                    <EstadoBadge estado={estado} activo={t.activo} />
                   </div>
 
-                  {/* Action buttons (Footer) */}
-                  <div className="grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800">
-                    {/* Ver / ocultar QR */}
+                  {/* Token & Link Info */}
+                  <div className="space-y-3">
+                     <div className="flex items-center justify-between gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                        <div className="flex flex-col overflow-hidden">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Código de acceso</span>
+                           <code className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 truncate">
+                            {t.token.slice(0, 10)}...{t.token.slice(-10)}
+                           </code>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-10 w-10 min-w-10 rounded-xl hover:bg-white dark:hover:bg-slate-800 shadow-sm"
+                          onClick={() => copyLink(t.token, t.id)}
+                        >
+                          {copiedId === t.id ? <CheckCheck className="w-5 h-5 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                        </Button>
+                     </div>
+
+                     <div className="flex items-center gap-3 px-1 text-xs font-bold text-slate-400">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {formatToBogota(sesion?.fecha || t.created_at, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                     </div>
+                  </div>
+
+                  {/* QR Expandible */}
+                  {isExpanded && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-500 pt-2 pb-4">
+                      <QrCanvas token={t.token} tokenId={t.id} sesionNombre={sesion?.nombre ?? "sesion"} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Acciones Footer */}
+                <div className="p-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 space-y-4">
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      className="gap-2 h-11 rounded-none col-span-2 font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/80 dark:text-slate-300 dark:hover:text-white transition-colors"
+                      variant={isExpanded ? "secondary" : "ghost"}
+                      className="w-full h-12 rounded-xl font-bold bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 hover:text-indigo-600 gap-2 shadow-sm transition-all"
                       onClick={() => setExpandedId(isExpanded ? null : t.id)}
                     >
-                      <QrCode className="w-4 h-4 text-slate-400" />
-                      {isExpanded ? "Ocultar QR Visible" : "Mostrar QR Visible"}
+                      <Maximize2 className={cn("w-4 h-4 transition-transform duration-500", isExpanded && "rotate-180")} />
+                      {isExpanded ? "Ocultar Código QR" : "Mostrar Código QR"}
                     </Button>
 
-                    <div className="col-span-2 grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800">
-                      {/* Activar */}
-                      {(estado === 'generado' || (!estado && !t.activo)) && (
+                    <div className="flex gap-2.5">
+                       {/* Control de Flujo (Activar/Pausar) */}
+                       {(estado === 'generado' || (!estado && !t.activo)) ? (
                          <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-2 h-11 rounded-none col-span-2 font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 transition-colors"
-                          onClick={() => handleAction('activar', t.id)}
-                          disabled={isActing('activar')}
-                        >
-                          <Play className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400" />
-                          {isActing('activar') ? "Activando..." : "Activar para Asistencia"}
-                        </Button>
-                      )}
+                            className="flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-wider bg-emerald-600 hover:bg-emerald-500 text-white gap-2 transition-all hover:scale-[1.02]"
+                            onClick={() => handleAction('activar', t.id)}
+                            disabled={isActing('activar')}
+                          >
+                            <Play className="w-4 h-4 fill-white" />
+                            Activar
+                          </Button>
+                       ) : estado === 'activo' ? (
+                          <Button
+                            variant="outline"
+                            className="flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-wider border-amber-200 text-amber-600 hover:bg-amber-50 gap-2 transition-all"
+                            onClick={() => handleAction('desactivar', t.id)}
+                            disabled={isActing('desactivar')}
+                          >
+                            <StopCircle className="w-4 h-4" />
+                            Pausar
+                          </Button>
+                       ) : null}
 
-                      {/* Desactivar */}
-                      {estado === 'activo' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-2 h-11 rounded-none font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 dark:text-orange-400 transition-colors"
-                          onClick={() => handleAction('desactivar', t.id)}
-                          disabled={isActing('desactivar')}
-                        >
-                          <StopCircle className="w-4 h-4" />
-                          {isActing('desactivar') ? "..." : "Pausar/Cerrar"}
-                        </Button>
-                      )}
+                       {/* Anular Acceso */}
+                       {!isFinished && (
+                          <Button
+                            variant="outline"
+                            className="flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-wider border-rose-100 text-rose-500 hover:bg-rose-50 gap-2 transition-all"
+                            onClick={() => handleAction('cancelar', t.id)}
+                            disabled={isActing('cancelar')}
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Anular
+                          </Button>
+                       )}
 
-                      {/* Cancelar */}
-                      {!isFinished && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-2 h-11 rounded-none font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 transition-colors"
-                          onClick={() => handleAction('cancelar', t.id)}
-                          disabled={isActing('cancelar')}
-                        >
-                          <XCircle className="w-4 h-4" />
-                          {isActing('cancelar') ? "..." : "Anular"}
-                        </Button>
-                      )}
-
-                      {/* Copiar enlace */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`gap-2 h-11 rounded-none font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/80 dark:text-slate-300 dark:hover:text-white transition-colors ${!isFinished && estado !== 'activo' ? 'col-span-2 border-t border-slate-100 dark:border-slate-800' : ''} ${isFinished ? 'col-span-1 border-r border-slate-100 dark:border-slate-800' : ''}`}
-                        onClick={() => copyLink(t.token, t.id)}
-                      >
-                        {copiedId === t.id ? <CheckCheck className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                        {copiedId === t.id ? "¡Copiado!" : "Copiar URL"}
-                      </Button>
-
-                      {/* Eliminar QR — solo disponible cuando está cerrado o cancelado */}
-                      {isFinished && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-2 h-11 rounded-none font-bold text-rose-600 hover:text-rose-700 bg-white hover:bg-rose-50 dark:bg-slate-900 dark:hover:bg-rose-500/10 dark:text-rose-400 transition-colors"
-                          onClick={() => handleDelete(t.id)}
-                          disabled={actionLoading === t.id + 'eliminar'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {actionLoading === t.id + 'eliminar' ? "Eliminando..." : "Eliminar Definitivo"}
-                        </Button>
-                      )}
+                       {/* Eliminar (Solo si está finalizado) */}
+                       {isFinished && (
+                         <Button
+                            variant="outline"
+                            className="flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-wider border-rose-200 text-rose-600 hover:bg-rose-50 gap-2 transition-all"
+                            onClick={() => handleDelete(t.id)}
+                            disabled={isActing('eliminar')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar
+                          </Button>
+                       )}
                     </div>
-                  </div>
-                </CardContent>
+                </div>
               </Card>
             );
           })}

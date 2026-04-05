@@ -39,13 +39,13 @@ export function EventoActions({ eventoId, hasTemplate }: EventoActionsProps) {
       variant="secondary"
       size="sm"
       disabled={loading}
-      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95 h-8 px-3"
+      className="gap-2.5 bg-gradient-to-br from-[#4f7cff] to-[#3b82f6] hover:brightness-110 text-white shadow-[0_8px_18px_rgba(59,130,246,0.25)] hover:shadow-[0_12px_22px_rgba(59,130,246,0.35)] transition-all duration-300 active:scale-95 h-9 px-4 rounded-xl border-0 font-bold text-[13px] hover:-translate-y-0.5"
       onClick={handleTrigger}
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
-        <Award className="w-3.5 h-3.5" />
+        <Award className="w-4 h-4" />
       )}
       {loading ? "Procesando..." : "Enviar Certificados"}
     </Button>

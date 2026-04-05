@@ -118,20 +118,20 @@ export function SesionesForm({ eventos, onCreated }: SesionesFormProps) {
   };
 
   return (
-    <Card className="max-w-2xl border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-[1.5rem] overflow-hidden">
-      <div className="h-1 w-full bg-gradient-to-r from-primary to-secondary"></div>
-      <CardHeader className="pb-4 px-6 pt-6 border-b border-slate-100 dark:border-slate-800">
-        <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100">Nueva Sesión</CardTitle>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Configuración de Sesión</h3>
+        <p className="text-[13px] text-slate-500 font-medium">Define los detalles operativos y temporales para la nueva sesión.</p>
         {selectedEvento?.fecha_inicio && (
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block mt-2 border border-slate-200/60 dark:border-slate-700/60">
-            <span className="font-bold text-secondary dark:text-primary">Rango permitido:</span> {getBogotaDateString(selectedEvento.fecha_inicio)}
-            {selectedEvento?.fecha_fin ? ` al ${getBogotaDateString(selectedEvento.fecha_fin)}` : ""}
-            {selectedEvento?.hora_inicio ? ` | Desde ${selectedEvento.hora_inicio}` : ""}
-            {selectedEvento?.hora_fin ? ` hasta ${selectedEvento.hora_fin}` : ""}
-          </p>
+          <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+            <p className="text-[11px] font-bold text-indigo-600/80 dark:text-indigo-400 capitalize tracking-wide">
+              {getBogotaDateString(selectedEvento.fecha_inicio)}
+              {selectedEvento?.fecha_fin ? ` — ${getBogotaDateString(selectedEvento.fecha_fin)}` : ""}
+            </p>
+          </div>
         )}
-      </CardHeader>
-      <CardContent className="p-6">
+      </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Evento</Label>
@@ -202,7 +202,6 @@ export function SesionesForm({ eventos, onCreated }: SesionesFormProps) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
