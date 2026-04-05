@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import BenefitsSection from "@/components/BenefitsSection";
+import HowItWorksSection from "@/components/HowItWorksSection";
 
 export const dynamic = 'force-dynamic';
 
@@ -97,65 +98,8 @@ export default function Home() {
         {/* Beneficios — componente premium con animaciones */}
         <BenefitsSection />
 
-        {/* ¿Cómo funciona? */}
-        <section id="como-funciona" className="py-24 bg-structural text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none"></div>
-          <div className="container max-w-7xl mx-auto px-4 z-10 relative">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-8">
-                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">El flujo operativo, <br/>simplificado.</h2>
-                <div className="space-y-6">
-                  <div className="flex gap-4 items-start">
-                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold shrink-0 mt-1 shadow-lg shadow-primary/30">1</div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-1">Crea tu Empresa y Evento</h4>
-                      <p className="text-slate-300">Registra tu organización, define los detalles de tu webinar o congreso y carga el diseño base de tu certificado institucional.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold shrink-0 mt-1">2</div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-1">Inscribe y Pasa lista (QR)</h4>
-                      <p className="text-slate-300">Importa masivamente desde Excel o utiliza los links públicos. Permite acreditación en sitio escaneando el código de cada participante.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold shrink-0 mt-1">3</div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-1">Un Click a la Emisión</h4>
-                      <p className="text-slate-300">Oprime "Generar" y nuestro motor en background diseñará individualmente el PDF y lo enviará al correo de cada apraboy o asistente verificado.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mockup Dashboard */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent rounded-[2rem] transform translate-y-6 translate-x-6 -z-10 blur-xl"></div>
-                <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-2 shadow-2xl">
-                   <div className="bg-slate-950 rounded-3xl overflow-hidden aspect-[4/3] flex flex-col">
-                      <div className="h-10 border-b border-slate-800 flex items-center px-4 gap-2">
-                        <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                        <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                      </div>
-                      <div className="p-6 flex-1 flex flex-col gap-4">
-                         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                            <div><div className="h-5 w-32 bg-slate-800 rounded mb-2"></div><div className="h-3 w-48 bg-slate-800 rounded"></div></div>
-                            <div className="h-8 w-24 bg-primary/20 rounded-full"></div>
-                         </div>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="h-24 bg-slate-800 rounded-xl"></div>
-                            <div className="h-24 bg-slate-800 rounded-xl"></div>
-                         </div>
-                         <div className="flex-1 bg-slate-800 rounded-xl mt-4"></div>
-                      </div>
-                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* ¿Cómo funciona? — Stepper interactivo */}
+        <HowItWorksSection />
 
         {/* CTA Final */}
         <section className="py-24 bg-white relative">
