@@ -39,7 +39,7 @@ export default function PricingPage() {
             <Link href="/login" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-primary transition-colors">
               Iniciar Sesión
             </Link>
-            <Link href="/login">
+            <Link href="/registro">
               <Button className="font-bold rounded-xl shadow-md bg-primary hover:bg-primary/90">
                 Pruébalo Gratis
               </Button>
