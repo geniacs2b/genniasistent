@@ -44,7 +44,7 @@ export default function Home() {
 
       <main className="flex-1 pt-16">
         {/* Superior Hero Section — Compacto para primer viewport */}
-        <section className="relative overflow-hidden pt-16 pb-12 md:pt-24 md:pb-24 text-center px-4">
+        <section className="relative overflow-hidden pt-16 pb-8 md:pt-24 md:pb-16 text-center px-4">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
           
           <div className="container max-w-5xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -72,12 +72,6 @@ export default function Home() {
                   Descubrir Plataforma
                 </Button>
               </Link>
-            </div>
-            
-            <div className="pt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-bold text-slate-500/80">
-              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Sin tarjeta requerida</span>
-              <div className="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></div>
-              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary" /> Setup inicial en minutos</span>
             </div>
           </div>
         </section>

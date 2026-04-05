@@ -64,49 +64,36 @@ export default function PricingPage() {
               Comienza gratis o elige el volumen de certificados que mejor se adapte a las conferencias y eventos de tu empresa.
             </p>
 
-            {/* Early Access Alert */}
-            <div className="max-w-2xl mx-auto mt-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-4 text-left shadow-sm animate-pulse">
-              <div className="h-10 w-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-                <ArrowRight className="w-5 h-5 text-amber-600 rotate-[-45deg]" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-amber-900 uppercase tracking-tight">
-                  Modo Acceso Anticipado
-                </p>
-                <p className="text-xs text-amber-700 font-medium mt-0.5">
-                  Estamos en fase de lanzamiento. Por ahora disfruta de todas las funciones base. Los planes Pro se activarán próximamente.
-                </p>
-              </div>
-            </div>
-
-            {/* Toggle Mensual / Anual */}
-            <div className="flex items-center justify-center pt-8">
-              <div className="bg-white border border-slate-200 p-1.5 rounded-full inline-flex relative shadow-sm">
-                <button
-                  onClick={() => setIsAnnual(false)}
-                  className={`relative z-10 px-6 py-2.5 text-sm font-bold rounded-full transition-colors ${
-                    !isAnnual ? "text-white" : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Pagos Mensuales
-                </button>
-                <button
-                  onClick={() => setIsAnnual(true)}
-                  className={`relative z-10 px-6 py-2.5 text-sm font-bold rounded-full transition-colors ${
-                    isAnnual ? "text-white" : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Pagos Anuales{" "}
-                  <span className="text-[10px] ml-1 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                    2 Meses Gratis
-                  </span>
-                </button>
-                {/* Slider background */}
+            {/* Billing Toggle — Redesigned for premium feel and no clipping */}
+            <div className="flex items-center justify-center pt-10">
+              <div className="relative bg-slate-100 border border-slate-200/60 p-1 rounded-2xl flex items-center shadow-sm">
+                {/* Switch Background Slider */}
                 <div
-                  className={`absolute top-1.5 bottom-1.5 w-[50%] bg-primary rounded-full transition-transform duration-300 ease-in-out ${
-                    isAnnual ? "translate-x-[97%]" : "translate-x-0"
+                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-[14px] shadow-sm transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                    isAnnual ? "translate-x-full" : "translate-x-0"
                   }`}
                 />
+                
+                <button
+                  onClick={() => setIsAnnual(false)}
+                  className={`relative z-10 px-8 py-2.5 text-[13px] font-bold rounded-[14px] transition-colors whitespace-nowrap ${
+                    !isAnnual ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Mensual
+                </button>
+                
+                <button
+                  onClick={() => setIsAnnual(true)}
+                  className={`relative z-10 px-8 py-2.5 text-[13px] font-bold rounded-[14px] transition-colors whitespace-nowrap flex items-center gap-2 ${
+                    isAnnual ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Anual
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    -15%
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -150,14 +137,26 @@ export default function PricingPage() {
         </section>
       </main>
 
-      {/* Footer Público */}
-      <footer className="bg-slate-50 border-t border-slate-200 py-12">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-tighter text-slate-500 uppercase italic">
-              Genni<span className="text-primary italic">Asistent</span>
-            </span>
-            <span className="text-slate-400 text-sm">© {new Date().getFullYear()}</span>
+      {/* Footer único — unificado con estética premium */}
+      <footer className="bg-white border-t border-slate-100 mt-20">
+        <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-12 text-center">
+          {/* Links legales */}
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-8">
+            <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Términos de uso</Link>
+            <div className="hidden sm:block w-px h-4 bg-slate-200 self-center" />
+            <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Privacidad</Link>
+            <div className="hidden sm:block w-px h-4 bg-slate-200 self-center" />
+            <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Soporte corporativo</Link>
+          </div>
+
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              <img src="/assets/logo-gennia.png" alt="GENNIA" className="h-5 w-auto object-contain opacity-70" />
+              <span className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-700">Desarrollado por GENNIA</span>
+            </div>
+            <p className="text-[12px] text-slate-400 font-medium">
+              © {new Date().getFullYear()} GenniAsistent. Todos los derechos reservados.
+            </p>
           </div>
         </div>
       </footer>
