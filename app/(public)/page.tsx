@@ -102,34 +102,61 @@ export default function Home() {
         <HowItWorksSection />
 
         {/* CTA Final */}
-        <section className="py-24 bg-white relative">
-           <div className="container max-w-4xl mx-auto px-4 text-center">
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">¿Listo para evolucionar la operación de tus eventos?</h2>
-              <p className="text-xl text-slate-600 mb-10 font-medium">Únete a las empresas que ya automatizan miles de horas manuales cada mes.</p>
-              <Link href="/registro">
-                <Button size="lg" className="h-16 px-10 rounded-full font-bold shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-lg bg-primary text-white">
-                  Empieza ahora, es gratis
-                  <ArrowRight className="ml-2 w-6 h-6" />
-                </Button>
-              </Link>
-           </div>
+        <section className="py-28 bg-gradient-to-b from-white to-slate-50 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,hsl(74_55%_51%/0.07),transparent)] pointer-events-none" />
+          <div className="container max-w-3xl mx-auto px-4 text-center relative z-10">
+            <p className="text-[10.5px] font-black uppercase tracking-[0.25em] text-primary/60 mb-5">
+              Empieza hoy
+            </p>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.1] mb-5">
+              Simplifica tu operación.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500 italic">
+                Desde el primer evento.
+              </span>
+            </h2>
+            <p className="text-[17px] text-slate-500 font-medium mb-10 max-w-xl mx-auto leading-relaxed">
+              Crea tu organización, configura tu primer evento y emite certificados en minutos. Sin fricción, sin procesos manuales.
+            </p>
+            <Link href="/registro">
+              <Button
+                size="lg"
+                className="h-14 px-10 rounded-full font-bold shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 text-[16px] bg-primary text-white"
+              >
+                Empieza ahora, es gratis
+                <ArrowRight className="ml-2.5 w-5 h-5" />
+              </Button>
+            </Link>
+            <p className="mt-5 text-[13px] text-slate-400 font-medium">
+              Sin tarjeta requerida · Configuración inicial en minutos
+            </p>
+          </div>
         </section>
       </main>
 
-      {/* Footer Público */}
-      <footer className="bg-slate-50 border-t border-slate-200 py-12">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-tighter text-slate-500 uppercase italic">
-              Genni<span className="text-primary italic">Asistent</span>
-            </span>
-            <span className="text-slate-400 text-sm">© {new Date().getFullYear()}</span>
+      {/* Footer único — unificado */}
+      <footer className="bg-white border-t border-slate-100">
+        {/* Links legales */}
+        <div className="container max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6 flex flex-wrap justify-center gap-x-8 gap-y-2">
+          <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Términos de uso</Link>
+          <div className="hidden sm:block w-px h-4 bg-slate-200 self-center" />
+          <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Privacidad</Link>
+          <div className="hidden sm:block w-px h-4 bg-slate-200 self-center" />
+          <Link href="#" className="text-[13px] font-semibold text-slate-400 hover:text-primary transition-colors">Soporte corporativo</Link>
+        </div>
+
+        {/* Marca principal */}
+        <div className="container max-w-5xl mx-auto px-4 sm:px-6 pb-3 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <img src="/assets/logo-gennia.png" alt="GENNIA" className="h-5 w-auto object-contain opacity-70" />
+            <span className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-700">Desarrollado por GENNIA</span>
           </div>
-          <div className="flex gap-6 text-sm font-semibold text-slate-500">
-            <Link href="#" className="hover:text-primary transition-colors">Términos</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Privacidad</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Soporte Corporativo</Link>
-          </div>
+        </div>
+
+        {/* Copyright */}
+        <div className="container max-w-5xl mx-auto px-4 sm:px-6 pb-8 text-center">
+          <p className="text-[12px] text-slate-400 font-medium">
+            © {new Date().getFullYear()} GenniAsistent. Todos los derechos reservados.
+          </p>
         </div>
       </footer>
     </div>
